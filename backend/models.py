@@ -18,6 +18,7 @@ class ProductCategory(models.Model):
         """Return a string representation of the ProductCategory object using its name."""
         return self.name
 
+
 class Product(models.Model):
     name = models.CharField(max_length=100, null=False)
     category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE, related_name='category')
@@ -30,7 +31,7 @@ class Product(models.Model):
 class ShopProduct(models.Model):
     shop = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='shop')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product')
-    quantity = models.IntegerField(null=False)
+    quantity = models.IntegerField()
 
 
 class DynamicField(models.Model):
@@ -39,19 +40,19 @@ class DynamicField(models.Model):
 
 
 class Parameters(models.Model):
-    screen_size = models.IntegerField(null=True)
-    resolution = models.IntegerField(null=True)
-    internal_memory = models.IntegerField(null=True)
-    color = models.CharField(max_length=50, null=True)
-    smart_tv = models.BooleanField(null=True)
-    capacity = models.IntegerField(null=True)
+    screen_size = models.IntegerField(null=True, blank=True)
+    resolution = models.IntegerField(null=True, blank=True)
+    internal_memory = models.IntegerField(null=True, blank=True)
+    color = models.CharField(max_length=50, null=True, blank=True)
+    smart_tv = models.BooleanField(null=True, blank=True)
+    capacity = models.IntegerField(null=True, blank=True)
     dynamic_fields = models.ManyToManyField(DynamicField)
 
 
 class ProductInfo(models.Model):
-    model = models.CharField(max_length=100, null=False)
-    price = models.IntegerField(null=False)
-    price_rrc = models.IntegerField(null=False)
+    model = models.CharField(max_length=100)
+    price = models.IntegerField()
+    price_rrc = models.IntegerField()
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     parameters = models.ForeignKey(Parameters, on_delete=models.CASCADE)
 
@@ -62,10 +63,13 @@ class ProductInfo(models.Model):
 
 class Order(models.Model):
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    status = models.BooleanField(null=False)
+    status = models.BooleanField()
 
 
 class OrderProduct(models.Model):
     order_id = models.ForeignKey(Order, on_delete=models.CASCADE)
     product_id = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField(null=False)
+    quantity = models.IntegerField()
+
+
+

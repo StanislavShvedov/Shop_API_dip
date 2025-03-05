@@ -18,14 +18,17 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from backend.views import (ShopViewSet, ShopProductViewSet, ProductCategoryViewSet, ProductsViewSet)
+from backend.views import (ShopViewSet, ShopProductViewSet,
+                           ProductCategoryViewSet, ProductsViewSet,
+                           CreateProductCard)
 
 
 router = DefaultRouter()
-router.register('shop', ShopViewSet)
-router.register('shop/product', ShopProductViewSet)
-router.register('category', ProductCategoryViewSet)
-router.register('product', ProductsViewSet)
+router.register('shops', ShopViewSet, basename='shop')
+router.register('shop/product', ShopProductViewSet, basename='shop/product')
+router.register('category', ProductCategoryViewSet, basename='category')
+router.register('products', ProductsViewSet, basename='product')
+router.register('create', CreateProductCard, basename='create')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
