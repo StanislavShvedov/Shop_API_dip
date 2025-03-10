@@ -20,7 +20,7 @@ from rest_framework.routers import DefaultRouter
 
 from backend.views import (ShopViewSet, ShopProductViewSet,
                            ProductCategoryViewSet, ProductsViewSet,
-                           CreateProductCard)
+                           CreateProductCard, ImportProducts)
 
 
 router = DefaultRouter()
@@ -32,4 +32,5 @@ router.register('create', CreateProductCard, basename='create')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('import/', ImportProducts.as_view(), name='import'),
 ] + router.urls

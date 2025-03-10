@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 class Shop(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, unique=True)
 
     def __str__(self):
         """Return a string representation of the Shop object using its name."""
@@ -40,10 +40,10 @@ class DynamicField(models.Model):
 
 
 class Parameters(models.Model):
-    screen_size = models.IntegerField(null=True, blank=True)
-    resolution = models.IntegerField(null=True, blank=True)
+    screen_size = models.FloatField(null=True, blank=True)
+    resolution = models.CharField(max_length=10, null=True, blank=True)
     internal_memory = models.IntegerField(null=True, blank=True)
-    color = models.CharField(max_length=50, null=True, blank=True)
+    color = models.CharField(max_length=100, null=True, blank=True)
     smart_tv = models.BooleanField(null=True, blank=True)
     capacity = models.IntegerField(null=True, blank=True)
     dynamic_fields = models.ManyToManyField(DynamicField)
