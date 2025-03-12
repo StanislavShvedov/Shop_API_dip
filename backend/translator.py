@@ -38,6 +38,3 @@ def translator_key(text):
             return f"Error: {e}"
     else:
         return text
-
-
-print(translat_text_en_ru('Smartphone Samsung Galaxy S20 128GB (black)'))

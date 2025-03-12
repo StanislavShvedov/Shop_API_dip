@@ -20,7 +20,8 @@ from rest_framework.routers import DefaultRouter
 
 from backend.views import (ShopViewSet, ShopProductViewSet,
                            ProductCategoryViewSet, ProductsViewSet,
-                           CreateProductCard, ImportProducts)
+                           CreateProductCardViewSet, ImportProductsView,
+                           UserViewSet)
 
 
 router = DefaultRouter()
@@ -28,9 +29,10 @@ router.register('shops', ShopViewSet, basename='shop')
 router.register('shop/product', ShopProductViewSet, basename='shop/product')
 router.register('category', ProductCategoryViewSet, basename='category')
 router.register('products', ProductsViewSet, basename='product')
-router.register('create', CreateProductCard, basename='create')
+router.register('create', CreateProductCardViewSet, basename='create')
+router.register('account/registration', UserViewSet, basename='registration')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('import/', ImportProducts.as_view(), name='import'),
+    path('import/', ImportProductsView.as_view(), name='import'),
 ] + router.urls

@@ -1,25 +1,32 @@
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
 
 from .models import (ProductCategory, Product,
                      ProductInfo, Parameters,
                      Shop, ShopProduct)
+from .validators import validate_password
 
 
 class ShopSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shop
-        fields = ['name']
+        fields = ['user', 'name']
+        read_only_fields = ['user']
 
 
 class ProductCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductCategory
-        fields = ['name']
+        fields = ['user', 'name']
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['name', 'category']
+        fields = ['id', 'user', 'name', 'category']
 
 
 class ShopProductSerializer(serializers.ModelSerializer):
@@ -32,15 +39,16 @@ class ShopProductSerializer(serializers.ModelSerializer):
 class ProductInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductInfo
-        fields = ['model', 'price', 'price_rrc', 'product_id.name']
+        fields = ['user', 'model', 'price', 'price_rrc', 'product_id.name']
 
 
 class ParametersSerializer(serializers.ModelSerializer):
     class Meta:
         model = Parameters
-        fields = ['screen_size', 'resolution', 'internal_memory', 'color', 'smart_tv', 'capacity']
+        fields = ['user', 'screen_size', 'resolution', 'internal_memory', 'color', 'smart_tv', 'capacity']
 
 class CreateProductCardSerializer(serializers.Serializer):
+    user = serializers.IntegerField()
     shop_name = serializers.CharField(max_length=50)
     category_name = serializers.CharField(max_length=50)
     product_name = serializers.CharField(max_length=100)
@@ -48,8 +56,8 @@ class CreateProductCardSerializer(serializers.Serializer):
     model = serializers.CharField(max_length=100)
     price = serializers.IntegerField()
     price_rrc = serializers.IntegerField()
-    screen_size = serializers.IntegerField(required=False)
-    resolution = serializers.IntegerField(required=False)
+    screen_size = serializers.FloatField(required=False)
+    resolution = serializers.CharField(required=False)
     internal_memory = serializers.IntegerField(required=False)
     color = serializers.CharField(max_length=50, required=False)
     smart_tv = serializers.BooleanField(required=False)
@@ -102,3 +110,29 @@ class CreateProductCardSerializer(serializers.Serializer):
         )
 
         return validated_data
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'password')
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return Response(f'Вы успешно зарегистрированы!')
+
+    @receiver(post_save, sender=User)
+    def create_auth_token(sender, instance=None, created=False, **kwargs):
+        if created:
+            Token.objects.create(user=instance)
+
+class OrderSerializaer(serializers.ModelSerializer):
+    pass
