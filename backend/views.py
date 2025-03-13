@@ -2,6 +2,8 @@ import requests
 from django.db import transaction
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
+from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,9 +13,9 @@ import yaml
 
 from .models import Product, ProductCategory, Shop, ShopProduct, Parameters, ProductInfo, Order, OrderProduct
 from .permissions import IsOwnerOrReadOnly, IsOwner
-from .serializers import (ProductSerializer, ProductCategorySerializer,
+from .serializers import (ProductListSerializer, ProductDetailSerializer, ProductCategorySerializer,
                           ShopSerializer, ShopProductSerializer, CreateProductCardSerializer,
-                          UserSerializer, ParametersSerializer)
+                          UserSerializer, ParametersSerializer, OrderSerializer)
 from .translator import translat_text_en_ru, translat_text_ru_en, translator_key
 
 
@@ -43,8 +45,12 @@ class ProductCategoryViewSet(ModelViewSet):
 
 class ProductsViewSet(ModelViewSet):
     queryset = Product.objects.all()
-    serializer_class = ProductSerializer
     permission_classes = [IsOwnerOrReadOnly]
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ProductDetailSerializer
+        return ProductListSerializer
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -131,7 +137,6 @@ class ImportProductsView(APIView):
                                                    quantity=product['quantity'])
 
                         if product['parameters']:
-                            print(product_instance.name)
                             screen_size = None
                             resolution = None
                             internal_memory = None
@@ -173,7 +178,7 @@ class ImportProductsView(APIView):
                                 color=color,
                                 smart_tv=smart_tv,
                                 capacity=capacity)
-                        print(product['model'], product['price'], product['price_rrc'])
+
                         ProductInfo.objects.create(user=user,
                                                    model=product['model'],
                                                    price=product['price'],
@@ -181,9 +186,16 @@ class ImportProductsView(APIView):
                                                    product=product_instance,
                                                    parameters=parameters_instance)
                     except Exception as e:
-                        return Response(
-                            {'status': f'Произошла ошибка при импорте продуктов из каталога {yaml_file}: {e}'})
-        return Response({'status': f'Продукты из каталога {yaml_file} успешно импортированы'})
+                        if yaml_file:
+                            return Response(
+                                {'status': f'Произошла ошибка при импорте продуктов из каталога {yaml_file}: {e}'})
+                        elif yaml_url:
+                            return Response(
+                            {'status': f'Произошла ошибка при импорте продуктов из каталога {yaml_url}: {e}'})
+        if yaml_file:
+            return Response({'status': f'Продукты из каталога {yaml_file} успешно импортированы'})
+        elif yaml_url:
+            return Response({'status': f'Продукты из каталога {yaml_url} успешно импортированы'})
 
 
 class UserViewSet(ModelViewSet):
@@ -202,4 +214,7 @@ class ExportProducts(APIView):
 
 
 class OrderViewSet(ModelViewSet):
-    pass
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+

@@ -1,1 +1,5 @@
 __pycache__/
+.venv/
+backend/migrations/
+shop_API_service/__pycache__/
+backend/migrations/__pycache__/

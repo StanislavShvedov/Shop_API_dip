@@ -58,7 +58,7 @@ class ProductInfo(models.Model):
     model = models.CharField(max_length=100)
     price = models.DecimalField(decimal_places=2, max_digits=10)
     price_rrc = models.DecimalField(decimal_places=2, max_digits=10)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_info')
     parameters = models.ForeignKey(Parameters, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
@@ -70,6 +70,13 @@ class ProductInfo(models.Model):
 class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     status = models.BooleanField()
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def update_total_price(self):
+        self.total_price = sum(item.product.price * item.quantity for item in self.order_products.all())
+        self.save()
 
 
 class OrderProduct(models.Model):

@@ -8,7 +8,8 @@ from rest_framework.authtoken.models import Token
 
 from .models import (ProductCategory, Product,
                      ProductInfo, Parameters,
-                     Shop, ShopProduct)
+                     Shop, ShopProduct, DynamicField,
+                     OrderProduct, Order)
 from .validators import validate_password
 
 
@@ -35,10 +36,27 @@ class ShopProductSerializer(serializers.ModelSerializer):
         fields = ['shop_name', 'product_name', 'quantity']
 
 
+class DynamicFieldSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DynamicField
+        fields = ['name', 'value']
+
 class ParametersSerializer(serializers.ModelSerializer):
+    dynamic_fields = DynamicFieldSerializer(many=True, read_only=True)
+
     class Meta:
         model = Parameters
-        fields = ['screen_size', 'resolution', 'internal_memory', 'color', 'smart_tv', 'capacity']
+        fields = ['screen_size', 'resolution', 'internal_memory', 'color', 'smart_tv', 'capacity', 'dynamic_fields']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+
+        for field in list(representation.keys()):
+            if representation[field] is None:
+                del representation[field]
+
+        return representation
+
 
 class ProductInfoSerializer(serializers.ModelSerializer):
     parameters = ParametersSerializer(read_only=True)
@@ -47,13 +65,25 @@ class ProductInfoSerializer(serializers.ModelSerializer):
         model = ProductInfo
         fields = ['model', 'price', 'price_rrc', 'parameters']
 
-class ProductSerializer(serializers.ModelSerializer):
+
+class ProductListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'category', 'user']
+
+
+class ProductDetailSerializer(serializers.ModelSerializer):
     product_info = ProductInfoSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = ['id', 'name', 'category', 'user', 'product_info']
 
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'category', 'user']
 
 
 class CreateProductCardSerializer(serializers.Serializer):
@@ -155,5 +185,21 @@ class UserSerializer(serializers.ModelSerializer):
             Token.objects.create(user=instance)
 
 
-class OrderSerializaer(serializers.ModelSerializer):
-    pass
+class OrderProductSerializaer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+    class Meta:
+        model = OrderProduct
+        field = ['product', 'quantity']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    order_products = OrderProductSerializaer(many=True, read_only=True)
+    total_price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = ['id', 'user', 'status', 'created_at', 'updated_at', 'order_products', 'total_price']
+
+    def get_total_price(self, obj):
+        return sum(item.product.price * item.quantity for item in obj.order_products.all())
+
