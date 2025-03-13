@@ -33,7 +33,7 @@ def translator_key(text):
         try:
             for key, value in fields_value.items():
                 if key in text:
-                   return value
+                    return value
         except Exception as e:
             return f"Error: {e}"
     else:

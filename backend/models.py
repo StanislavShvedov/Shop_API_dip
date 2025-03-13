@@ -51,13 +51,13 @@ class Parameters(models.Model):
     smart_tv = models.BooleanField(null=True, blank=True)
     capacity = models.IntegerField(null=True, blank=True)
     dynamic_fields = models.ManyToManyField(DynamicField)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user')
 
 
 class ProductInfo(models.Model):
     model = models.CharField(max_length=100)
-    price = models.DecimalField(decimal_places=2, max_digits=7)
-    price_rrc = models.DecimalField(decimal_places=2, max_digits=7)
+    price = models.DecimalField(decimal_places=2, max_digits=10)
+    price_rrc = models.DecimalField(decimal_places=2, max_digits=10)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     parameters = models.ForeignKey(Parameters, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -76,5 +76,3 @@ class OrderProduct(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.IntegerField()
-
-

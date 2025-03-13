@@ -2,6 +2,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
@@ -22,30 +23,38 @@ class ProductCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductCategory
         fields = ['user', 'name']
-
-class ProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ['id', 'user', 'name', 'category']
+        read_only_fields = ['user']
 
 
 class ShopProductSerializer(serializers.ModelSerializer):
     shop_name = serializers.ReadOnlyField(source='shop.name')
     product_name = serializers.ReadOnlyField(source='product.name')
+
     class Meta:
         model = ShopProduct
         fields = ['shop_name', 'product_name', 'quantity']
-
-class ProductInfoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductInfo
-        fields = ['user', 'model', 'price', 'price_rrc', 'product_id.name']
 
 
 class ParametersSerializer(serializers.ModelSerializer):
     class Meta:
         model = Parameters
-        fields = ['user', 'screen_size', 'resolution', 'internal_memory', 'color', 'smart_tv', 'capacity']
+        fields = ['screen_size', 'resolution', 'internal_memory', 'color', 'smart_tv', 'capacity']
+
+class ProductInfoSerializer(serializers.ModelSerializer):
+    parameters = ParametersSerializer(read_only=True)
+
+    class Meta:
+        model = ProductInfo
+        fields = ['model', 'price', 'price_rrc', 'parameters']
+
+class ProductSerializer(serializers.ModelSerializer):
+    product_info = ProductInfoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'category', 'user', 'product_info']
+
+
 
 class CreateProductCardSerializer(serializers.Serializer):
     user = serializers.IntegerField()
@@ -64,22 +73,22 @@ class CreateProductCardSerializer(serializers.Serializer):
     capacity = serializers.IntegerField(required=False)
 
     def create(self, validated_data):
+        user = User.objects.get(id=validated_data['user'])
         # Создание магазина
         shop_name = validated_data['shop_name']
-        print(shop_name)
-        shop = Shop.objects.create(name=shop_name)
+        shop = Shop.objects.create(user=user, name=shop_name)
 
         # Создание категории продукта
         category_name = validated_data['category_name']
-        category, _ = ProductCategory.objects.get_or_create(name=category_name)
+        category, _ = ProductCategory.objects.get_or_create(user=user, name=category_name)
 
         # Создание продукта
         product_name = validated_data['product_name']
-        product, _ = Product.objects.get_or_create(name=product_name, category=category)
+        product, _ = Product.objects.get_or_create(user=user, name=product_name, category=category)
 
         # Создание продукта в магазине
         quantity = validated_data['quantity']
-        ShopProduct.objects.create(shop=shop, product=product, quantity=quantity)
+        ShopProduct.objects.create(user=user, shop=shop, product=product, quantity=quantity)
 
         # Создание информации о продукте
         model = validated_data['model']
@@ -93,6 +102,7 @@ class CreateProductCardSerializer(serializers.Serializer):
         capacity = validated_data['capacity']
 
         parameters, _ = Parameters.objects.get_or_create(
+            user=user,
             screen_size=screen_size,
             resolution=resolution,
             internal_memory=internal_memory,
@@ -102,6 +112,7 @@ class CreateProductCardSerializer(serializers.Serializer):
         )
 
         ProductInfo.objects.create(
+            user=user,
             model=model,
             price=price,
             price_rrc=price_rrc,
@@ -115,8 +126,17 @@ class CreateProductCardSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('username', 'password')
+        fields = ('username', 'first_name', 'last_name', 'email', 'password')
         extra_kwargs = {'password': {'write_only': True}}
+
+    def validate(self, data):
+        if not data.get('username'):
+            raise ValidationError("Имя пользователя обязательно")
+        if not data.get('email'):
+            raise ValidationError("Электронная почта обязательна")
+        if not data.get('password'):
+            raise ValidationError("Пароль обязателен")
+        return data
 
     def validate_password(self, value):
         validate_password(value)
@@ -127,12 +147,13 @@ class UserSerializer(serializers.ModelSerializer):
         user = User(**validated_data)
         user.set_password(password)
         user.save()
-        return Response(f'Вы успешно зарегистрированы!')
+        return user
 
     @receiver(post_save, sender=User)
     def create_auth_token(sender, instance=None, created=False, **kwargs):
         if created:
             Token.objects.create(user=instance)
+
 
 class OrderSerializaer(serializers.ModelSerializer):
     pass
