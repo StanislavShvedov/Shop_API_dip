@@ -22,6 +22,7 @@
                     <a href="{% url 'product_detail' product.id %}">{{ product.name }}</a>
                 </li>
             {% endfor %}
+            <a href="{% url 'shop_categories' shop_id %}">Назад</a>
         </ul>
     </main>
 </body>

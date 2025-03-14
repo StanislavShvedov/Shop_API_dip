@@ -15,3 +15,5 @@ def validate_password(password):
 
     if not re.search("[0-9]", password):
         raise ValidationError("Пароль должен содержать хотя бы одну цифру.")
+
+    return True

@@ -138,3 +138,5 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ]
 }
+
+SESSION_ENGINE = "django.contrib.sessions.backends.db"

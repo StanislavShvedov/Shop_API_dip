@@ -1,7 +1,9 @@
 import requests
 from django.contrib import messages
+from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import UserCreationForm
 from django.db import transaction
+from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from rest_framework import status
@@ -235,32 +237,68 @@ def index(request):
     return render(request, templates, context)
 
 
+class CustomUserCreationForm(UserCreationForm):
+    email = forms.EmailField(label="Email")
+
+    class Meta(UserCreationForm.Meta):
+        fields = UserCreationForm.Meta.fields + ("email",)
+        widgets = {
+            'password1': forms.PasswordInput(),
+            'password2': forms.PasswordInput(),
+        }
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"]
+        if commit:
+            user.save()
+        return user
+
+
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             form.save()
             username = form.cleaned_data.get('username')
             messages.success(request, f'Аккаунт {username} успешно создан!')
-            return redirect('login')  # Перенаправляем на страницу входа
+            return redirect('login')
+        else:
+            print(form.errors)
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
     return render(request, 'backend/register.html', {'form': form})
+
+
+def user_login(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('home')
+        else:
+            # Выводим сообщение об ошибке
+            return render(request, 'backend/login.html',
+                          {'error': 'Неверное имя пользователя или пароль'})
+    else:
+        return render(request, 'backend/login.html')
 
 
 def shop_categories(request, shop_id):
     shop = get_object_or_404(Shop, id=shop_id)
-    categories = ProductCategory.objects.filter(shop=shop)  # Получаем категории для магазина
+    categories = ProductCategory.objects.filter(shop=shop)
     templates = 'backend/shop_categories.html'
     context = {'shop': shop.name, 'categories': categories}
     return render(request, templates, context)
 
 
-def products(request, category_id):
+def category_products(request, category_id):
     category = get_object_or_404(ProductCategory, id=category_id)
     products = Product.objects.filter(category=category)
     templates = 'backend/category_products.html'
-    context = {'shop': category.shop.name, 'category': category.name, 'products': products}
+    context = {'shop': category.shop.name, 'category': category.name, 'products': products, 'shop_id': category.shop.id}
     return render(request, templates, context)
 
 
@@ -269,5 +307,5 @@ def product_detail(request, product_id):
     info = ProductInfo.objects.filter(product=product)
     parameters = Parameters.objects.filter(product_info__product=product)
     templates = 'backend/product_detail.html'
-    context = {'product': product, 'info': info, 'parameters': parameters}
+    context = {'product': product, 'info': info, 'parameters': parameters, 'category_id': product.category.id}
     return render(request, templates, context)

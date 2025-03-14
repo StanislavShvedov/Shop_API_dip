@@ -23,7 +23,7 @@ from backend.views import (ShopViewSet, ShopProductViewSet,
                            ProductCategoryViewSet, ProductsViewSet,
                            CreateProductCardViewSet, ImportProductsView,
                            UserViewSet, ParamsViewSet, OrderViewSet,
-                           index, register, shop_categories, products, product_detail)
+                           index, register, shop_categories, category_products, product_detail, user_login)
 
 
 router = DefaultRouter()
@@ -41,8 +41,8 @@ urlpatterns = [
     path('import/', ImportProductsView.as_view(), name='import'),
     path('index/', index, name='index'),
     path('register/', register, name='register'),
-    path('login/', auth_views.LoginView.as_view(template_name='backend/login.html'), name='login'),
+    path('login/', user_login, name='login'),
     path('shop_categories/<int:shop_id>', shop_categories, name='shop_categories'),
-    path('category_products/<int:category_id>/', products, name='category_products'),
+    path('category_products/<int:category_id>/', category_products, name='category_products'),
     path('product_detail/<int:product_id>/', product_detail, name='product_detail'),
 ] + router.urls
