@@ -1,0 +1,29 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная страница</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Интернет-магазин</h1>
+        <nav>
+            <a href="{% url 'register' %}">Регистрация</a>
+            <a href="{% url 'login' %}">Авторизация</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Список магазинов</h2>
+        <ul>
+            {% for shop in shops %}
+                <li>
+                    <a href="{% url 'shop_categories' shop.id %}">{{ shop.name }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </main>
+</body>
+</html>

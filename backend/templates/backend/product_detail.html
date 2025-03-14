@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Категории магазина: {{ shop }}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Магазин: {{ shop }}</h1>
+        <nav>
+            <a href="{% url 'index' %}">На главную</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Категоря товаров: {{ category }}</h2>
+        <div>
+             <h3>{{ product.name }}<h3>
+             <ul>
+                 {% for value in info %}
+                     <li> Модель: {{ value.model }} </li>
+                     <li> Цена: {{ value.price_rrc }} рублей</li>
+                 {% endfor %}
+                 {% for param in parameters %}
+                     {% if param.screen_size is not None %}
+                         <li> Диагональ (дюйм): {{ param.screen_size }}</li>
+                     {% endif %}
+                     {% if param.resolution is not None %}
+                         <li> Разрешение (пикс): {{ param.resolution }}</li>
+                     {% endif %}
+                     {% if param.internal_memory is not None %}
+                         <li> Встроенная память (Гб): {{ param.internal_memory }}</li>
+                     {% endif %}
+                     {% if param.capacity is not None %}
+                         <li> Емкость (Гб): {{ param.capacity }}</li>
+                     {% endif %}
+                     {% if param.color is not None %}
+                         <li> Цвет: {{ param.color }}</li>
+                     {% endif %}
+                 {% endfor %}
+             </ul>
+        </div>
+    </main>
+</body>

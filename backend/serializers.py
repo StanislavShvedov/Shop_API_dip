@@ -23,7 +23,7 @@ class ShopSerializer(serializers.ModelSerializer):
 class ProductCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductCategory
-        fields = ['user', 'name']
+        fields = ['user', 'name', 'shop']
         read_only_fields = ['user']
 
 
@@ -59,17 +59,11 @@ class ParametersSerializer(serializers.ModelSerializer):
 
 
 class ProductInfoSerializer(serializers.ModelSerializer):
-    parameters = ParametersSerializer(read_only=True)
+    info_parameters = ParametersSerializer(many=True, read_only=True)
 
     class Meta:
         model = ProductInfo
-        fields = ['model', 'price', 'price_rrc', 'parameters']
-
-
-class ProductListSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ['id', 'name', 'category', 'user']
+        fields = ['model', 'price', 'price_rrc', 'info_parameters']
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
@@ -78,6 +72,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'name', 'category', 'user', 'product_info']
+
+
+class ProductListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'category', 'user']
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -110,7 +110,7 @@ class CreateProductCardSerializer(serializers.Serializer):
 
         # Создание категории продукта
         category_name = validated_data['category_name']
-        category, _ = ProductCategory.objects.get_or_create(user=user, name=category_name)
+        category, _ = ProductCategory.objects.get_or_create(user=user, name=category_name, shop=shop)
 
         # Создание продукта
         product_name = validated_data['product_name']
@@ -131,23 +131,23 @@ class CreateProductCardSerializer(serializers.Serializer):
         smart_tv = validated_data['smart_tv']
         capacity = validated_data['capacity']
 
-        parameters, _ = Parameters.objects.get_or_create(
+        product_info, _ = ProductInfo.objects.create(
+            user=user,
+            model=model,
+            price=price,
+            price_rrc=price_rrc,
+            product=product,
+        )
+
+        Parameters.objects.get_or_create(
             user=user,
             screen_size=screen_size,
             resolution=resolution,
             internal_memory=internal_memory,
             color=color,
             smart_tv=smart_tv,
-            capacity=capacity
-        )
-
-        ProductInfo.objects.create(
-            user=user,
-            model=model,
-            price=price,
-            price_rrc=price_rrc,
-            product=product,
-            parameters=parameters
+            capacity=capacity,
+            product_info=product_info
         )
 
         return validated_data

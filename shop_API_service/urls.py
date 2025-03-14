@@ -16,12 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from rest_framework.routers import DefaultRouter
 
 from backend.views import (ShopViewSet, ShopProductViewSet,
                            ProductCategoryViewSet, ProductsViewSet,
                            CreateProductCardViewSet, ImportProductsView,
-                           UserViewSet, ParamsViewSet, OrderViewSet)
+                           UserViewSet, ParamsViewSet, OrderViewSet,
+                           index, register, shop_categories, products, product_detail)
 
 
 router = DefaultRouter()
@@ -37,4 +39,10 @@ router.register('order', OrderViewSet, basename='order')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('import/', ImportProductsView.as_view(), name='import'),
+    path('index/', index, name='index'),
+    path('register/', register, name='register'),
+    path('login/', auth_views.LoginView.as_view(template_name='backend/login.html'), name='login'),
+    path('shop_categories/<int:shop_id>', shop_categories, name='shop_categories'),
+    path('category_products/<int:category_id>/', products, name='category_products'),
+    path('product_detail/<int:product_id>/', product_detail, name='product_detail'),
 ] + router.urls

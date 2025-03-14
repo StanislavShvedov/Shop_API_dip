@@ -15,6 +15,7 @@ class Shop(models.Model):
 class ProductCategory(models.Model):
     name = models.CharField(max_length=50)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    shop = models.ForeignKey(Shop, on_delete=models.CASCADE, default=None)
 
     def __str__(self):
         """Return a string representation of the ProductCategory object using its name."""
@@ -24,6 +25,7 @@ class ProductCategory(models.Model):
 class Product(models.Model):
     name = models.CharField(max_length=100)
     category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE, related_name='category')
+    is_available = models.BooleanField(default=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self):
@@ -43,6 +45,17 @@ class DynamicField(models.Model):
     value = models.CharField(max_length=255)
 
 
+class ProductInfo(models.Model):
+    model = models.CharField(max_length=100)
+    price = models.DecimalField(decimal_places=2, max_digits=10)
+    price_rrc = models.DecimalField(decimal_places=2, max_digits=10)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_info')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+
+        return self.model
+
 class Parameters(models.Model):
     screen_size = models.FloatField(null=True, blank=True)
     resolution = models.CharField(max_length=10, null=True, blank=True)
@@ -52,19 +65,7 @@ class Parameters(models.Model):
     capacity = models.IntegerField(null=True, blank=True)
     dynamic_fields = models.ManyToManyField(DynamicField)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user')
-
-
-class ProductInfo(models.Model):
-    model = models.CharField(max_length=100)
-    price = models.DecimalField(decimal_places=2, max_digits=10)
-    price_rrc = models.DecimalField(decimal_places=2, max_digits=10)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_info')
-    parameters = models.ForeignKey(Parameters, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-
-    def __str__(self):
-
-        return self.model
+    product_info = models.ForeignKey(ProductInfo, on_delete=models.CASCADE, related_name='info_parameters')
 
 
 class Order(models.Model):

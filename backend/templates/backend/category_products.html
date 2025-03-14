@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Категории магазина: {{ shop }}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Магазин: {{ shop }}</h1>
+        <nav>
+            <a href="{% url 'index' %}">На главную</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Категоря товаров: {{ category }}</h2>
+        <ul>
+            {% for product in products %}
+                <li>
+                    <a href="{% url 'product_detail' product.id %}">{{ product.name }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </main>
+</body>

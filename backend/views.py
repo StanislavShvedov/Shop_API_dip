@@ -1,6 +1,8 @@
 import requests
+from django.contrib import messages
+from django.contrib.auth.forms import UserCreationForm
 from django.db import transaction
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from rest_framework import status
 from rest_framework.decorators import action
@@ -27,6 +29,9 @@ class ShopViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+from django.shortcuts import render
+from .models import Shop
 
 
 class ShopProductViewSet(ModelViewSet):
@@ -113,7 +118,10 @@ class ImportProductsView(APIView):
                         continue
                     else:
                         try:
-                            ProductCategory.objects.create(user=user, id=category['id'], name=category['name'])
+                            ProductCategory.objects.create(user=user,
+                                                           id=category['id'],
+                                                           name=category['name'],
+                                                           shop=shop_instance)
                         except Exception as e:
                             return Response({'status': f"Error: {e}"})
 
@@ -135,6 +143,12 @@ class ImportProductsView(APIView):
                                                    shop=shop_instance,
                                                    product=product_instance,
                                                    quantity=product['quantity'])
+
+                        info_instance = ProductInfo.objects.create(user=user,
+                                                   model=product['model'],
+                                                   price=product['price'],
+                                                   price_rrc=product['price_rrc'],
+                                                   product=product_instance)
 
                         if product['parameters']:
                             screen_size = None
@@ -177,14 +191,9 @@ class ImportProductsView(APIView):
                                 internal_memory=internal_memory,
                                 color=color,
                                 smart_tv=smart_tv,
-                                capacity=capacity)
+                                capacity=capacity,
+                                product_info=info_instance)
 
-                        ProductInfo.objects.create(user=user,
-                                                   model=product['model'],
-                                                   price=product['price'],
-                                                   price_rrc=product['price_rrc'],
-                                                   product=product_instance,
-                                                   parameters=parameters_instance)
                     except Exception as e:
                         if yaml_file:
                             return Response(
@@ -218,3 +227,47 @@ class OrderViewSet(ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
+
+def index(request):
+    shops = Shop.objects.all()
+    templates = 'backend/index.html'
+    context = {'shops': shops}
+    return render(request, templates, context)
+
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Аккаунт {username} успешно создан!')
+            return redirect('login')  # Перенаправляем на страницу входа
+    else:
+        form = UserCreationForm()
+    return render(request, 'backend/register.html', {'form': form})
+
+
+def shop_categories(request, shop_id):
+    shop = get_object_or_404(Shop, id=shop_id)
+    categories = ProductCategory.objects.filter(shop=shop)  # Получаем категории для магазина
+    templates = 'backend/shop_categories.html'
+    context = {'shop': shop.name, 'categories': categories}
+    return render(request, templates, context)
+
+
+def products(request, category_id):
+    category = get_object_or_404(ProductCategory, id=category_id)
+    products = Product.objects.filter(category=category)
+    templates = 'backend/category_products.html'
+    context = {'shop': category.shop.name, 'category': category.name, 'products': products}
+    return render(request, templates, context)
+
+
+def product_detail(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
+    info = ProductInfo.objects.filter(product=product)
+    parameters = Parameters.objects.filter(product_info__product=product)
+    templates = 'backend/product_detail.html'
+    context = {'product': product, 'info': info, 'parameters': parameters}
+    return render(request, templates, context)
