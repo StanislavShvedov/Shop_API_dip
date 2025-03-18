@@ -68,19 +68,64 @@ class Parameters(models.Model):
     product_info = models.ForeignKey(ProductInfo, on_delete=models.CASCADE, related_name='info_parameters')
 
 
+class OrderProduct(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='products')
+    shop_product = models.ForeignKey(ShopProduct, on_delete=models.CASCADE, related_name='shop_products')
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='order_products')
+    quantity = models.IntegerField()
+
+    def update_product_quantity(self, action: str):
+        if action == 'remove':
+            if self.shop_product.quantity >= self.quantity:
+                self.shop_product.quantity -= self.quantity
+                self.shop_product.save()
+                return self.shop_product.quantity
+            else:
+                raise ValueError("Недостаточно товара на складе")
+        elif action == 'add':
+            self.shop_product.quantity += self.quantity
+            self.shop_product.save()
+            return self.shop_product.quantity
+
+
+class DeliveryContacts(models.Model):
+    city = models.CharField(max_length=50)
+    street = models.CharField(max_length=100)
+    house_number = models.CharField(max_length=20)
+    apartment_number = models.CharField(max_length=10)
+    phone_number = models.CharField(max_length=11)
+
 class Order(models.Model):
+    ORDER_STATUS_CHOICES = [
+        ('empty', 'Пустой'),
+        ('new', 'Новый'),
+        ('making an order', 'Оформление заказа'),
+        ('done', 'Завершен'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    status = models.BooleanField()
+    status_choice = models.CharField(default=ORDER_STATUS_CHOICES[0][0])
+    delivery_choice = models.BooleanField(default=False)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    delivery_contacts = models.ForeignKey(DeliveryContacts, on_delete=models.CASCADE,
+                                          related_name='delivery_contacts', default=None)
 
-    def update_total_price(self):
-        self.total_price = sum(item.product.price * item.quantity for item in self.order_products.all())
+    def get_product_price(self):
+        price = ProductInfo.objects.filter(product=self.order_products.first().product).first().price
+        return price
+
+    def update_total_price(self, price=None):
+        if not self.order_products.exists():
+            self.total_price = 0
+        else:
+            self.total_price = sum(self.get_product_price() * item.quantity for item in self.order_products.all())
+            self.save()
+
+    def update_status(self):
+        if not self.order_products.exists():
+            self.status_choice = self.ORDER_STATUS_CHOICES[0][0]
+        elif self.order_products.exists():
+            self.status_choice = self.ORDER_STATUS_CHOICES[1][0]
         self.save()
-
-
-class OrderProduct(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField()

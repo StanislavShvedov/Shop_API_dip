@@ -32,6 +32,7 @@ class ShopViewSet(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+
 from django.shortcuts import render
 from .models import Shop
 
@@ -147,10 +148,10 @@ class ImportProductsView(APIView):
                                                    quantity=product['quantity'])
 
                         info_instance = ProductInfo.objects.create(user=user,
-                                                   model=product['model'],
-                                                   price=product['price'],
-                                                   price_rrc=product['price_rrc'],
-                                                   product=product_instance)
+                                                                   model=product['model'],
+                                                                   price=product['price'],
+                                                                   price_rrc=product['price_rrc'],
+                                                                   product=product_instance)
 
                         if product['parameters']:
                             screen_size = None
@@ -202,7 +203,7 @@ class ImportProductsView(APIView):
                                 {'status': f'Произошла ошибка при импорте продуктов из каталога {yaml_file}: {e}'})
                         elif yaml_url:
                             return Response(
-                            {'status': f'Произошла ошибка при импорте продуктов из каталога {yaml_url}: {e}'})
+                                {'status': f'Произошла ошибка при импорте продуктов из каталога {yaml_url}: {e}'})
         if yaml_file:
             return Response({'status': f'Продукты из каталога {yaml_file} успешно импортированы'})
         elif yaml_url:
@@ -220,28 +221,12 @@ class ParamsViewSet(ModelViewSet):
     serializer_class = ParametersSerializer
 
 
-class ExportProducts(APIView):
-    pass
-
-
-class OrderViewSet(ModelViewSet):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
-
-
-def index(request):
-    shops = Shop.objects.all()
-    templates = 'backend/index.html'
-    context = {'shops': shops}
-    return render(request, templates, context)
-
-
 class CustomUserCreationForm(UserCreationForm):
-    email = forms.EmailField(label="Email")
+    email = forms.EmailField(label='Email')
+    is_stuff = forms.BooleanField(label='Stuff')
 
     class Meta(UserCreationForm.Meta):
-        fields = UserCreationForm.Meta.fields + ("email",)
+        fields = UserCreationForm.Meta.fields + ('email', 'is_stuff')
         widgets = {
             'password1': forms.PasswordInput(),
             'password2': forms.PasswordInput(),
@@ -250,9 +235,17 @@ class CustomUserCreationForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"]
+        user.is_staff = self.cleaned_data["is_stuff"]
         if commit:
             user.save()
         return user
+
+
+def index(request):
+    shops = Shop.objects.all()
+    templates = 'backend/index.html'
+    context = {'shops': shops}
+    return render(request, templates, context)
 
 
 def register(request):
@@ -272,8 +265,8 @@ def register(request):
 
 def user_login(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.POST.get['username']
+        password = request.POST.get['password']
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
@@ -309,3 +302,96 @@ def product_detail(request, product_id):
     templates = 'backend/product_detail.html'
     context = {'product': product, 'info': info, 'parameters': parameters, 'category_id': product.category.id}
     return render(request, templates, context)
+
+
+class OrderViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsOwner]
+
+    def create(self, request, *args, **kwargs):
+        try:
+            order = Order.objects.get(user=self.request.user)
+        except Order.DoesNotExist or order.ORDER_STATUS_CHOICES == 'done':
+            order = Order.objects.create(user=self.request.user)
+            order.update_total_price()
+            order.update_status()
+            return Response({'status': f'Заказ успешно создан. Статус: {order.status_choice}. '
+                                       f'Общая сумма заказа {order.total_price} рублей'})
+        else:
+            return Response({'status': f'Заказ уже создан. Статус: {order.status_choice}. '
+                                       f'Общая сумма заказа {order.total_price} рублей'})
+
+    @action(methods=['post'], detail=False)
+    def add_product(self, request):
+        try:
+            order = Order.objects.get(user=self.request.user.id, status_choice__in=['empty', 'new'])
+        except Order.DoesNotExist:
+            order = Order.objects.create(user=self.request.user)
+            order.update_total_price()
+            order.update_status()
+        if order.status_choice == 'new' or order.status_choice == 'empty':
+            product_id = request.data.get('product_id')
+            product = Product.objects.get(id=product_id)
+            shop_product = ShopProduct.objects.get(product=product)
+            order_quantity = request.data.get('quantity')
+
+            existing_order_product = OrderProduct.objects.filter(product=product, order=order).first()
+            if existing_order_product:
+                existing_order_product.quantity += order_quantity
+                existing_order_product.save()
+                try:
+                    existing_order_product.update_product_quantity('remove')
+                except ValueError as e:
+                    return Response({'status': f"{e}"})
+            else:
+                order_product = OrderProduct.objects.create(product=product,
+                                                            shop_product=shop_product,
+                                                            order=order,
+                                                            quantity=order_quantity)
+                try:
+                    order_product.update_product_quantity('remove')
+                except ValueError as e:
+                    return Response({'status': f"{e}"})
+
+            order.update_total_price()
+            order.update_status()
+            return Response({'status': f'Товар {product.name} успешно добавлен в заказ. Статус: {order.status_choice}. '
+                                       f'Общая сумма заказа {order.total_price} рублей'})
+        else:
+            return Response({'status': f'Заказ уже завершен. Статус: {order.status_choice}. '
+                                       f'Общая сумма заказа {order.total_price} рублей'})
+
+
+    @action(methods=['post'], detail=False)
+    def delete_product(self, request):
+        try:
+            order = Order.objects.get(user=self.request.user.id, status_choice='new')
+            product_id = request.data.get('product_id')
+            product = Product.objects.get(id=product_id)
+            order_product = OrderProduct.objects.filter(product=product, order=order).first()
+            order_quantity = request.data.get('quantity')
+            if order_product.quantity > order_quantity:
+                order_product.quantity -= order_quantity
+                order_product.save()
+                order_product.update_product_quantity('add')
+                order.update_total_price()
+                return Response({'status': f'Заказ обновлен. Статус: {order.status_choice}. '
+                                       f'Общая сумма заказа {order.total_price} рублей'})
+            elif order_product.quantity == order_quantity:
+                order_product.delete()
+                order_product.update_product_quantity('add')
+                order.update_total_price()
+                order.update_status()
+                return Response({'status': f'Продукт {product.name} удален из заказа. Статус: {order.status_choice}. '
+                                       f'Общая сумма заказа {order.total_price} рублей'})
+            else:
+                return Response({'status': 'Количнство продуктов в заказе меньше указанного количества'})
+        except Order.DoesNotExist:
+            return Response({'status': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+        @action(methods='post', detail=False)
+        def place_an_order(self, request):
+            pass
+
+

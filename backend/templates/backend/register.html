@@ -64,6 +64,12 @@
         </ul>
         {% endif %}
     </p>
+
+    <p>
+        <label for="{{ form.is_stuff.id_for_label }}">Я поставщик:</label>
+        {{ form.is_stuff }}
+    </p>
+
     <button type="submit">Зарегистрироваться</button>
 
         <p>Уже есть аккаунт? <a href="{% url 'login' %}">Войдите</a></p>

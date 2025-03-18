@@ -9,7 +9,7 @@ from rest_framework.authtoken.models import Token
 from .models import (ProductCategory, Product,
                      ProductInfo, Parameters,
                      Shop, ShopProduct, DynamicField,
-                     OrderProduct, Order)
+                     OrderProduct, Order, DeliveryContacts)
 from .validators import validate_password
 
 
@@ -185,21 +185,27 @@ class UserSerializer(serializers.ModelSerializer):
             Token.objects.create(user=instance)
 
 
-class OrderProductSerializaer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
+class OrderProductSerializer(serializers.ModelSerializer):
+    product = ProductSerializer()
+    shop_product = ShopProductSerializer()
+
     class Meta:
         model = OrderProduct
-        field = ['product', 'quantity']
+        fields = ['id', 'product', 'shop_product', 'quantity']
+        read_only_fields = ['product_info']
 
+
+class DeliveryContacts(serializers.ModelSerializer):
+    class Meta:
+        model = DeliveryContacts
+        fields = ['city', 'street', 'house_number', 'apartment_number', 'phone_number']
 
 class OrderSerializer(serializers.ModelSerializer):
-    order_products = OrderProductSerializaer(many=True, read_only=True)
-    total_price = serializers.SerializerMethodField()
+    order_products = OrderProductSerializer(many=True, read_only=True)
+    delivery_contacts = DeliveryContacts()
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'status', 'created_at', 'updated_at', 'order_products', 'total_price']
-
-    def get_total_price(self, obj):
-        return sum(item.product.price * item.quantity for item in obj.order_products.all())
-
+        fields = ['id', 'user', 'status_choice', 'created_at', 'updated_at',
+                  'total_price', 'order_products', 'delivery_choice', 'delivery_contacts']
+        read_only_fields = ['user']
