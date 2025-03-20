@@ -17,13 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework.routers import DefaultRouter
+from django.contrib.auth.views import LogoutView
 
 from backend.views import (ShopViewSet, ShopProductViewSet,
                            ProductCategoryViewSet, ProductsViewSet,
                            CreateProductCardViewSet, ImportProductsView,
                            UserViewSet, ParamsViewSet, OrderViewSet,
                            index, register, shop_categories, category_products,
-                           product_detail, user_login, verify_email)
+                           product_detail, user_login, verify_email, profile, edit_profile)
 
 
 router = DefaultRouter()
@@ -43,8 +44,11 @@ urlpatterns = [
     path('index/', index, name='index'),
     path('register/', register, name='register'),
     path('login/', user_login, name='login'),
+    path('logout/', LogoutView.as_view(next_page='index'), name='logout'),
+    path('profile/edit/', edit_profile, name='edit_profile'),
     path('shop_categories/<int:shop_id>', shop_categories, name='shop_categories'),
     path('category_products/<int:category_id>/', category_products, name='category_products'),
     path('product_detail/<int:product_id>/', product_detail, name='product_detail'),
     path('verify/<str:token>/', verify_email, name='verify_email'),
+    path('profile/', profile, name='profile'),
 ] + router.urls

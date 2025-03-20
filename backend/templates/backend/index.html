@@ -11,8 +11,15 @@
     <header>
         <h1>Интернет-магазин</h1>
         <nav>
-            <a href="{% url 'register' %}">Регистрация</a>
-            <a href="{% url 'login' %}">Авторизация</a>
+            {% if user.is_authenticated %}
+                <!-- Для авторизованных пользователей -->
+                <a href="{% url 'profile' %}">Личный кабинет</a>
+                <a href="{% url 'logout' %}">Выйти</a>
+            {% else %}
+                <!-- Для неавторизованных пользователей -->
+                <a href="{% url 'register' %}">Регистрация</a>
+                <a href="{% url 'login' %}">Авторизация</a>
+            {% endif %}
         </nav>
     </header>
     <main>
@@ -24,6 +31,19 @@
                 </li>
             {% endfor %}
         </ul>
+
+        <!-- Персонализированный контент для авторизованных пользователей -->
+        {% if user.is_authenticated %}
+            <section>
+                <h3>Добро пожаловать, {{ user.username }}!</h3>
+                <p>Вы можете перейти в <a href="{% url 'profile' %}">личный кабинет</a>, чтобы увидеть свои заказы.</p>
+            </section>
+        {% else %}
+            <section>
+                <h3>Для доступа ко всем функциям сайта</h3>
+                <p>Пожалуйста, <a href="{% url 'register' %}">зарегистрируйтесь</a> или <a href="{% url 'login' %}">войдите</a>.</p>
+            </section>
+        {% endif %}
     </main>
 </body>
 </html>

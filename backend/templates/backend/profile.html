@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Интернет-магазин</h1>
+        <nav>
+            <a href="{% url 'index' %}">Главная</a>
+            <a href="{% url 'profile' %}">Личный кабинет</a>
+            <a href="{% url 'logout' %}">Выйти</a>
+        </nav>
+    </header>
+    <main>
+        <h2>Личный кабинет</h2>
+
+        <!-- Профиль пользователя -->
+        <section>
+            <h3>Профиль</h3>
+            <p>Имя пользователя: {{ user.username }}</p>
+            <p>Email: {{ user.email }}</p>
+            <a href="{% url 'edit_profile' %}">Редактировать профиль</a>
+        </section>
+
+        <!-- История заказов -->
+        <section>
+            <h3>История заказов</h3>
+            {% if orders %}
+                <ul>
+                    {% for order in orders %}
+                        <li>
+                            Заказ №{{ order.id }} от {{ order.created_at|date:"d.m.Y H:i" }}
+                            на сумму {{ order.total_price }} рублей<br>
+                            Статус: {{ order.get_status_choice_display }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>У вас пока нет заказов.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
