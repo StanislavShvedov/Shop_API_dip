@@ -16,7 +16,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from django.contrib.auth import views as auth_views
 from rest_framework.routers import DefaultRouter
 
 from backend.views import (ShopViewSet, ShopProductViewSet,
@@ -24,7 +23,7 @@ from backend.views import (ShopViewSet, ShopProductViewSet,
                            CreateProductCardViewSet, ImportProductsView,
                            UserViewSet, ParamsViewSet, OrderViewSet,
                            index, register, shop_categories, category_products,
-                           product_detail, user_login)
+                           product_detail, user_login, verify_email)
 
 
 router = DefaultRouter()
@@ -47,4 +46,5 @@ urlpatterns = [
     path('shop_categories/<int:shop_id>', shop_categories, name='shop_categories'),
     path('category_products/<int:category_id>/', category_products, name='category_products'),
     path('product_detail/<int:product_id>/', product_detail, name='product_detail'),
+    path('verify/<str:token>/', verify_email, name='verify_email'),
 ] + router.urls

@@ -10,10 +10,10 @@
 <body>
     <header>
         <h1>Авторизация</h1>
+         <nav>
+        <a href="{% url 'index' %}">На главную</a>
+    </nav>
     </header>
-    <nav>
-            <a href="{% url 'index' %}">На главную</a>
-        </nav>
     <main>
         <form method="post">
             {% csrf_token %}

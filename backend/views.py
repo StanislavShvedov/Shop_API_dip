@@ -1,11 +1,17 @@
+import uuid
+
 import requests
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -13,14 +19,17 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.contrib.auth.models import User
+
 import yaml
 
-from .models import Product, ProductCategory, Shop, ShopProduct, Parameters, ProductInfo, Order, OrderProduct
+from .models import (Product, ProductCategory, Shop, ShopProduct, Parameters,
+                     ProductInfo, Order, OrderProduct, VerificationToken)
 from .permissions import IsOwnerOrReadOnly, IsOwner
 from .serializers import (ProductListSerializer, ProductDetailSerializer, ProductCategorySerializer,
                           ShopSerializer, ShopProductSerializer, CreateProductCardSerializer,
-                          UserSerializer, ParametersSerializer, OrderSerializer)
+                          UserSerializer, ParametersSerializer, OrderSerializer, DeliveryContacts)
 from .translator import translat_text_en_ru, translat_text_ru_en, translator_key
+from .send_email import smtp_user, smtp_password, send_varif_mail
 
 
 # Create your views here.
@@ -31,10 +40,6 @@ class ShopViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
-
-from django.shortcuts import render
-from .models import Shop
 
 
 class ShopProductViewSet(ModelViewSet):
@@ -88,6 +93,8 @@ class ImportProductsView(APIView):
         serializer.save(user=self.request.user)
 
     def post(self, request):
+        if not request.user.is_staff and not request.user.is_superuser:
+            return Response({'status': 'У вас нет прав для импорта товаров'})
         yaml_file = request.FILES.get('yaml_file')
         if yaml_file:
             data = yaml.safe_load(yaml_file.read())
@@ -223,7 +230,7 @@ class ParamsViewSet(ModelViewSet):
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(label='Email')
-    is_stuff = forms.BooleanField(label='Stuff')
+    is_stuff = forms.BooleanField(label='Stuff', required=False)
 
     class Meta(UserCreationForm.Meta):
         fields = UserCreationForm.Meta.fields + ('email', 'is_stuff')
@@ -231,6 +238,18 @@ class CustomUserCreationForm(UserCreationForm):
             'password1': forms.PasswordInput(),
             'password2': forms.PasswordInput(),
         }
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("Этот email уже используется.")
+        return email
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise ValidationError("Это имя пользователя уже занято.")
+        return username
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -252,10 +271,25 @@ def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Аккаунт {username} успешно создан!')
-            return redirect('login')
+            user = form.save(commit=False)
+            user.is_active = False
+            user.save()
+
+            token = str(uuid.uuid4())
+            VerificationToken.objects.create(user=user, token=token)
+            verification_url = request.build_absolute_uri(reverse_lazy('verify_email', args=[token]))
+
+            try:
+                email_text = f"Для подтверждения регистрации перейдите по ссылке: {verification_url}"
+                subj_text = "Подтверждение регистрации"
+                send_varif_mail(host_email=smtp_user, password=smtp_password, user_email=user.email, subj_tex=subj_text,
+                                mail_text=email_text)
+                messages.success(request, f'Аккаунт {user.username} успешно создан! Проверьте почту для подтверждения.')
+            except Exception as e:
+                print(f"Ошибка при отправке письма: {str(e)}")
+                messages.error(request, f"Ошибка при отправке письма: {str(e)}")
+                user.delete()
+                return redirect('register')
         else:
             print(form.errors)
     else:
@@ -263,16 +297,41 @@ def register(request):
     return render(request, 'backend/register.html', {'form': form})
 
 
+def verify_email(request, token):
+    try:
+        verification_token = VerificationToken.objects.get(token=token)
+        user = verification_token.user
+        user.is_active = True
+        user.save()
+        verification_token.delete()
+        messages.success(request, "Электронная почта успешно подтверждена!")
+    except VerificationToken.DoesNotExist:
+        messages.error(request, "Недействительный токен верификации.")
+
+    return redirect('login')
+
+
+class UserViewSet(ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = (AllowAny,)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
 def user_login(request):
     if request.method == 'POST':
-        username = request.POST.get['username']
-        password = request.POST.get['password']
+        username = request.POST.get('username')
+        password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
             return redirect('home')
         else:
-            # Выводим сообщение об ошибке
             return render(request, 'backend/login.html',
                           {'error': 'Неверное имя пользователя или пароль'})
     else:
@@ -305,9 +364,16 @@ def product_detail(request, product_id):
 
 
 class OrderViewSet(ModelViewSet):
-    queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [IsOwner]
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Order.objects.all()
+        elif self.request.user.is_staff:
+            return Order.objects.filter(orderitem__product__user=self.request.user)
+        else:
+            return Order.objects.filter(user=self.request.user)
 
     def create(self, request, *args, **kwargs):
         try:
@@ -332,27 +398,32 @@ class OrderViewSet(ModelViewSet):
             order.update_status()
         if order.status_choice == 'new' or order.status_choice == 'empty':
             product_id = request.data.get('product_id')
-            product = Product.objects.get(id=product_id)
+            try:
+                product = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                return Response({'status': 'Товар не найден'}, status=status.HTTP_400_BAD_REQUEST)
             shop_product = ShopProduct.objects.get(product=product)
             order_quantity = request.data.get('quantity')
 
             existing_order_product = OrderProduct.objects.filter(product=product, order=order).first()
             if existing_order_product:
-                existing_order_product.quantity += order_quantity
-                existing_order_product.save()
                 try:
-                    existing_order_product.update_product_quantity('remove')
+                    existing_order_product.quantity += order_quantity
+                    existing_order_product.update_product_quantity('out_of_stock')
+                    existing_order_product.save()
                 except ValueError as e:
-                    return Response({'status': f"{e}"})
+                    return Response({'status': f"{e}"},
+                                    status=status.HTTP_400_BAD_REQUEST)
             else:
                 order_product = OrderProduct.objects.create(product=product,
                                                             shop_product=shop_product,
                                                             order=order,
                                                             quantity=order_quantity)
                 try:
-                    order_product.update_product_quantity('remove')
+                    order_product.update_product_quantity('out_of_stock')
                 except ValueError as e:
-                    return Response({'status': f"{e}"})
+                    return Response({'status': f"{e}"},
+                                    status=status.HTTP_400_BAD_REQUEST)
 
             order.update_total_price()
             order.update_status()
@@ -362,7 +433,6 @@ class OrderViewSet(ModelViewSet):
             return Response({'status': f'Заказ уже завершен. Статус: {order.status_choice}. '
                                        f'Общая сумма заказа {order.total_price} рублей'})
 
-
     @action(methods=['post'], detail=False)
     def delete_product(self, request):
         try:
@@ -370,28 +440,84 @@ class OrderViewSet(ModelViewSet):
             product_id = request.data.get('product_id')
             product = Product.objects.get(id=product_id)
             order_product = OrderProduct.objects.filter(product=product, order=order).first()
+            if not order_product:
+                return Response({'status': 'Продукт не найден в заказе'})
             order_quantity = request.data.get('quantity')
             if order_product.quantity > order_quantity:
                 order_product.quantity -= order_quantity
                 order_product.save()
-                order_product.update_product_quantity('add')
+                order_product.update_product_quantity('in_stock')
                 order.update_total_price()
                 return Response({'status': f'Заказ обновлен. Статус: {order.status_choice}. '
-                                       f'Общая сумма заказа {order.total_price} рублей'})
+                                           f'Общая сумма заказа {order.total_price} рублей'})
             elif order_product.quantity == order_quantity:
                 order_product.delete()
-                order_product.update_product_quantity('add')
+                order_product.update_product_quantity('in_stock')
                 order.update_total_price()
                 order.update_status()
                 return Response({'status': f'Продукт {product.name} удален из заказа. Статус: {order.status_choice}. '
-                                       f'Общая сумма заказа {order.total_price} рублей'})
+                                           f'Общая сумма заказа {order.total_price} рублей'})
             else:
                 return Response({'status': 'Количнство продуктов в заказе меньше указанного количества'})
         except Order.DoesNotExist:
             return Response({'status': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)
 
-        @action(methods='post', detail=False)
-        def place_an_order(self, request):
-            pass
+    @action(methods=['post'], detail=False)
+    def place_an_order(self, request):
+        delivery_choice = request.data.get('delivery_choice')
+        try:
+            order = Order.objects.get(user=self.request.user.id, status_choice='new')
+            order_product = OrderProduct.objects.filter(order=order)
+            if not delivery_choice:
+                order.status_choice = 'done'
+                order.save()
+                return Response({'status': f'Заказ успешно завершен. Статус: {order.status_choice}. '
+                                           f'Общая сумма заказа {order.total_price} рублей'})
+            elif delivery_choice:
+                required_fields = ['city', 'street', 'house_number', 'apartment_number', 'phone_number']
+                missing_fields = [field for field in required_fields if not request.data.get(field)]
 
+                if missing_fields:
+                    return Response(
+                        {'status': f'Отсутствуют обязательные поля: {", ".join(missing_fields)}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
+                order.delivery_choice = True
+                city = request.data.get('city')
+                street = request.data.get('street')
+                house_number = request.data.get('house_number')
+                apartment_number = request.data.get('apartment_number')
+                phone_number = request.data.get('phone_number')
+                delivery_contacts = DeliveryContacts.objects.create(city=city, street=street,
+                                                                    house_number=house_number,
+                                                                    apartment_number=apartment_number,
+                                                                    phone_number=phone_number)
+                order.delivery_contacts = delivery_contacts
+                order.status_choice = 'done'
+                order.save()
+
+                try:
+                    email_text = (f'Заказ успешно завершен. Статус: {order.status_choice}. '
+                                  f'Вы заказали: {'\n'.join([item.product.name for item in order_product])} \n'
+                                  f'Общая сумма заказа {order.total_price} рублей.\n Доставка указана '
+                                  f'по адресу: город {order.delivery_contacts.city}, '
+                                  f'улица {order.delivery_contacts.street}, '
+                                  f'дом {order.delivery_contacts.house_number}'
+                                  f'квартира {order.delivery_contacts.apartment_number}')
+                    subj_text = "Подтверждение заказа"
+                    send_varif_mail(host_email=smtp_user, password=smtp_password, user_email=order.user.email,
+                                    subj_tex=subj_text,
+                                    mail_text=email_text)
+                except Exception as e:
+                    print(f"Ошибка при отправке письма: {str(e)}")
+                    messages.error(request, f"Ошибка при отправке письма: {str(e)}")
+
+                return Response({'status': f'Заказ успешно завершен. Статус: {order.status_choice}. '
+                                           f'Общая сумма заказа {order.total_price} рублей. Доставка указана'
+                                           f'по адресу: город {order.delivery_contacts.city}, '
+                                           f'улица {order.delivery_contacts.street}, '
+                                           f'дом {order.delivery_contacts.house_number}'
+                                           f'квартира {order.delivery_contacts.apartment_number}'})
+        except Order.DoesNotExist:
+            return Response({'status': 'Заказ не найден'}, status=status.HTTP_404_NOT_FOUND)

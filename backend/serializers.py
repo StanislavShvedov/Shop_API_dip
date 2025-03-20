@@ -3,7 +3,6 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 
 from .models import (ProductCategory, Product,
@@ -195,17 +194,17 @@ class OrderProductSerializer(serializers.ModelSerializer):
         read_only_fields = ['product_info']
 
 
-class DeliveryContacts(serializers.ModelSerializer):
+class DeliveryContactsSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeliveryContacts
         fields = ['city', 'street', 'house_number', 'apartment_number', 'phone_number']
 
 class OrderSerializer(serializers.ModelSerializer):
     order_products = OrderProductSerializer(many=True, read_only=True)
-    delivery_contacts = DeliveryContacts()
+    delivery_contacts = DeliveryContactsSerializer()
 
     class Meta:
         model = Order
         fields = ['id', 'user', 'status_choice', 'created_at', 'updated_at',
                   'total_price', 'order_products', 'delivery_choice', 'delivery_contacts']
-        read_only_fields = ['user']
+        read_only_fields = ['user', 'status_choice', 'total_price']

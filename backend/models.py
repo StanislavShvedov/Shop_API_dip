@@ -75,14 +75,14 @@ class OrderProduct(models.Model):
     quantity = models.IntegerField()
 
     def update_product_quantity(self, action: str):
-        if action == 'remove':
+        if action == 'out_of_stock':
             if self.shop_product.quantity >= self.quantity:
                 self.shop_product.quantity -= self.quantity
                 self.shop_product.save()
                 return self.shop_product.quantity
             else:
                 raise ValueError("Недостаточно товара на складе")
-        elif action == 'add':
+        elif action == 'in_stock':
             self.shop_product.quantity += self.quantity
             self.shop_product.save()
             return self.shop_product.quantity
@@ -110,7 +110,7 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     delivery_contacts = models.ForeignKey(DeliveryContacts, on_delete=models.CASCADE,
-                                          related_name='delivery_contacts', default=None)
+                                          related_name='delivery_contacts', null=True, blank=True)
 
     def get_product_price(self):
         price = ProductInfo.objects.filter(product=self.order_products.first().product).first().price
@@ -129,3 +129,12 @@ class Order(models.Model):
         elif self.order_products.exists():
             self.status_choice = self.ORDER_STATUS_CHOICES[1][0]
         self.save()
+
+
+class VerificationToken(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Token for {self.user.username}"
