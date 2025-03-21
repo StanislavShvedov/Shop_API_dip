@@ -139,6 +139,11 @@ class ProductsViewSet(ModelViewSet):
             - perform_create(serializer: Serializer) -> None:
                 Переопределённый метод для сохранения нового объекта Product.
                 Автоматически присваивает текущего пользователя (request.user) как владельца товара.
+
+            - disable_product(request: Request) -> Response:
+                Переопределённый метод для отключения товара.
+                Проверяет права доступа и возвращает ответ с сообщением об успешном изменении состояния.
+                Если товар иктивен, деактивирует его для продажи и наоборот.
     """
     queryset = Product.objects.all()
     permission_classes = [IsOwnerOrReadOnly]
@@ -161,6 +166,30 @@ class ProductsViewSet(ModelViewSet):
                 - None
         """
         serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def disable_enabled_product(self, request):
+        """
+           Возвращает:
+           - При успешном выполнении: JSON-ответ с сообщением об успешном изменении состояния.
+           - При отсутствии прав доступа: JSON-ответ с сообщением об ошибке и статусом 403.
+
+           Параметры запроса:
+           - product_id (int): Идентификатор продукта, который необходимо отключить/включить.
+       """
+        if request.user.is_staff or request.user.is_superuser:
+            product_id = request.data.get('product_id')
+            product = Product.objects.filter(pk=product_id).first()
+            if product.is_available:
+                product.is_available = False
+                product.save()
+                return Response({'message': 'Product disabled successfully.'})
+            elif not product.is_available:
+                product.is_available = True
+                product.save()
+                return Response({'message': 'Product enabled successfully.'})
+
+        return Response({'message': 'You do not have permission to disable products.'}, status=status.HTTP_403_FORBIDDEN)
 
 
 class CreateProductCardViewSet(ModelViewSet):
@@ -579,6 +608,8 @@ class OrderViewSet(ModelViewSet):
             product_id = request.data.get('product_id')
             try:
                 product = Product.objects.get(id=product_id)
+                if not product.is_available:
+                    return Response({'status': 'Товар недоступен для продажи'}, status=status.HTTP_400_BAD_REQUEST)
             except Product.DoesNotExist:
                 return Response({'status': 'Товар не найден'}, status=status.HTTP_400_BAD_REQUEST)
             shop_product = ShopProduct.objects.get(product=product)
@@ -905,6 +936,21 @@ def product_detail(request, product_id):
 
 
 def profile(request):
+    """
+        Отображает профиль пользователя с историей его заказов.
+
+        Функция извлекает все заказы текущего пользователя, сортируя их
+        по дате создания в обратном порядке (от новых к старым).
+        Полученные данные передаются в контекст шаблона для отображения
+        на странице профиля.
+
+        Параметры:
+        - request (HttpRequest): Объект запроса Django, содержащий информацию
+          о текущем пользователе и запросе.
+
+        Возвращает:
+        - HttpResponse: Отрендеренный HTML-шаблон с контекстом данных.
+        """
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
 
     context = {

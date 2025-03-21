@@ -236,13 +236,16 @@ class DeliveryContacts(models.Model):
             - phone_number (CharField): Номер телефона для связи (максимальная длина 11 символов).
 
         Методы:
-            не определены
+            str: Возвращает строковое представление модели.
     """
     city = models.CharField(max_length=50)
     street = models.CharField(max_length=100)
     house_number = models.CharField(max_length=20)
     apartment_number = models.CharField(max_length=10)
     phone_number = models.CharField(max_length=11)
+
+    def __str__(self) -> str:
+        return self.name
 
 class Order(models.Model):
     """
