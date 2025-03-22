@@ -26,7 +26,7 @@ def send_varif_mail(host_email: str, password: str, user_email: str, subj_tex: s
         msg = MIMEMultipart()
         msg['From'] = host_email
         msg['To'] = user_email
-        msg['Subject'] = "Наш интернет магазин" + subj_tex
+        msg['Subject'] = "Наш интернет магазин " + subj_tex
         msg.attach(MIMEText(mail_text, 'plain'))
 
         server = smtplib.SMTP('smtp.yandex.ru', 587)

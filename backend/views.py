@@ -722,6 +722,25 @@ class OrderViewSet(ModelViewSet):
                 order.save()
 
                 try:
+                    staff_user_id = OrderProduct.objects.filter(order=order).first().shop_product.product.user.id
+                    staff_user_email = User.objects.get(id=staff_user_id).email
+                    print(staff_user_email)
+                    email_text = (f'Поступил новый заказ. Статус: {order.status_choice}. '
+                                  f'Продукты: {'\n'.join([item.product.name for item in order_product])} \n'
+                                  f'Общая сумма заказа {order.total_price} рублей.\n Доставка указана '
+                                  f'по адресу: город {order.delivery_contacts.city}, '
+                                  f'улица {order.delivery_contacts.street}, '
+                                  f'дом {order.delivery_contacts.house_number}'
+                                  f'квартира {order.delivery_contacts.apartment_number}')
+                    subj_text = "Новый заказ"
+                    send_varif_mail(host_email=smtp_user, password=smtp_password, user_email=staff_user_email,
+                                    subj_tex=subj_text,
+                                    mail_text=email_text)
+                except Exception as e:
+                    print(f"Ошибка при отправке письма: {str(e)}")
+                    messages.error(request, f"Ошибка при отправке письма: {str(e)}")
+
+                try:
                     email_text = (f'Заказ успешно завершен. Статус: {order.status_choice}. '
                                   f'Вы заказали: {'\n'.join([item.product.name for item in order_product])} \n'
                                   f'Общая сумма заказа {order.total_price} рублей.\n Доставка указана '

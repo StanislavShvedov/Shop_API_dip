@@ -23,8 +23,8 @@
 /api/shop-products/ - CRUD операции для товаров магазина
 /api/product-categories/ - CRUD операции для категорий товаров
 /api/products/ - CRUD операции для товаров
-/api/create-product-card/ - Создание карточек товаров
-/api/import-products/ - Импорт товаров из YAML
+/api/create-product-card/ - Создание карточки товара
+/api/import-products/ - Импорт товаров из YAML (файл или url)
 /api/users/ - CRUD операции для пользователей
 /api/params/ - CRUD операции для параметров товаров
 /api/orders/ - CRUD операции для заказов
@@ -62,7 +62,7 @@
 
 GET http://127.0.0.1:8000/shops/
 
-### Поубликуем магазин
+### Публикуем магазин
 POST http://127.0.0.1:8000/shops/
 Content-Type: application/json
 Authorization: Token bfdc7f16bdf14b837bed56beb9a65e6077e3520b
@@ -96,16 +96,16 @@ GET http://127.0.0.1:8000/products/4672670/
 
 ### Создание заказа
 POST http://127.0.0.1:8000/order/
-Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508
+Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508 ### замените на свой токен
 
 ### Получение списка заказов
 GET http://127.0.0.1:8000/order/
-Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508
+Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508 ### замените на свой токен
 
 ### Создание заказа
 POST http://127.0.0.1:8000/order/
 Content-Type: application/json
-Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508
+Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508 ### замените на свой токен
 
 {
 }
@@ -113,7 +113,7 @@ Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508
 ### Добавление продукта в заказ
 POST http://127.0.0.1:8000/order/add_product/
 Content-Type: application/json
-Authorization: Token 650aa235ca4355203d9910775db81893414a5b03
+Authorization: Token 650aa235ca4355203d9910775db81893414a5b03 ### замените на свой токен
 
 {
     "product_id": 4216226,
@@ -123,7 +123,7 @@ Authorization: Token 650aa235ca4355203d9910775db81893414a5b03
 ### Удаление продукта
 POST http://127.0.0.1:8000/order/delete_product/
 Content-Type: application/json
-Authorization: Token 650aa235ca4355203d9910775db81893414a5b03
+Authorization: Token 650aa235ca4355203d9910775db81893414a5b03 ### замените на свой токен
 
 {
     "product_id": 4216226,
@@ -133,7 +133,7 @@ Authorization: Token 650aa235ca4355203d9910775db81893414a5b03
 ### Завершение заказа(самовывоз)
 POST http://127.0.0.1:8000/order/place_an_order/
 Content-Type: application/json
-Authorization: Token 650aa235ca4355203d9910775db81893414a5b03
+Authorization: Token 650aa235ca4355203d9910775db81893414a5b03 ### замените на свой токен
 
 {
 
@@ -142,7 +142,7 @@ Authorization: Token 650aa235ca4355203d9910775db81893414a5b03
 ### Завершение заказа(доставка)
 POST http://127.0.0.1:8000/order/place_an_order/
 Content-Type: application/json
-Authorization: Token 650aa235ca4355203d9910775db81893414a5b03
+Authorization: Token 650aa235ca4355203d9910775db81893414a5b03 ### замените на свой токен
 
 {
     "delivery_choice": true,
@@ -153,10 +153,10 @@ Authorization: Token 650aa235ca4355203d9910775db81893414a5b03
     "phone_number": "23241"
 }
 
-###
+### Выключение/включение продукта
 POST http://127.0.0.1:8000/products/disable_enabled_product/
 Content-Type: application/json
-Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508
+Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508 ### замените на свой токен
 
 {
     "product_id": "4216226"
