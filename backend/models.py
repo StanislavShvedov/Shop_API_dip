@@ -235,7 +235,7 @@ class DeliveryContacts(models.Model):
             - apartment_number (CharField): Номер квартиры (максимальная длина 10 символов, опционально).
             - phone_number (CharField): Номер телефона для связи (максимальная длина 11 символов).
 
-        Методы:
+        Методы: 
             str: Возвращает строковое представление модели.
     """
     city = models.CharField(max_length=50)
