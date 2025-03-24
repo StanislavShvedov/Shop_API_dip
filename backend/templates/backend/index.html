@@ -14,7 +14,10 @@
             {% if user.is_authenticated %}
                 <!-- Для авторизованных пользователей -->
                 <a href="{% url 'profile' %}">Личный кабинет</a>
-                <a href="{% url 'logout' %}">Выйти</a>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit">Выйти</button>
+                </form>
             {% else %}
                 <!-- Для неавторизованных пользователей -->
                 <a href="{% url 'register' %}">Регистрация</a>

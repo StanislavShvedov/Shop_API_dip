@@ -11,6 +11,10 @@ from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
+from django.contrib.auth.models import User
+from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth.views import LogoutView
+from django.db.models import OuterRef, Subquery
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -19,7 +23,8 @@ from rest_framework.response import Response
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-from django.contrib.auth.models import User
+from rest_framework.filters import SearchFilter, OrderingFilter
+
 
 import yaml
 
@@ -56,6 +61,9 @@ class ShopViewSet(ModelViewSet):
     queryset = Shop.objects.all()
     serializer_class = ShopSerializer
     permission_classes = [IsOwnerOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ['name']
+    search_fields = ['name']
 
     def perform_create(self, serializer) -> None:
         """
@@ -90,6 +98,11 @@ class ShopProductViewSet(ModelViewSet):
     queryset = ShopProduct.objects.all()
     serializer_class = ShopProductSerializer
     permission_classes = [IsOwnerOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['shop']
+    search_fields = ['product']
+    ordering_fields = ['quantity']
+
 
     def perform_create(self, serializer) -> None:
         """
@@ -116,6 +129,9 @@ class ProductCategoryViewSet(ModelViewSet):
     """
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ['name','shop']
+    search_fields = ['name']
 
 
 class ProductsViewSet(ModelViewSet):
@@ -144,9 +160,16 @@ class ProductsViewSet(ModelViewSet):
                 Переопределённый метод для отключения товара.
                 Проверяет права доступа и возвращает ответ с сообщением об успешном изменении состояния.
                 Если товар иктивен, деактивирует его для продажи и наоборот.
+
+            - get_queryset() -> queryset:
+                Переопределённый метод для получения queryset объектов Product с аннотированным полем 'price'
     """
     queryset = Product.objects.all()
     permission_classes = [IsOwnerOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['name']
+    search_fields = ['name']
+    ordering_fields = ['name', 'price']
 
     def get_serializer_class(self) -> Type[Serializer]:
         """
@@ -166,6 +189,23 @@ class ProductsViewSet(ModelViewSet):
                 - None
         """
         serializer.save(user=self.request.user)
+
+    def get_queryset(self) -> queryset:
+        """
+            Returns:
+                queryset: QuerySet объектов Product с аннотированным полем 'price'.
+        """
+        price_subquery = ProductInfo.objects.filter(product=OuterRef('pk')).values('price')[:1]
+
+        queryset = Product.objects.annotate(
+            price=Subquery(price_subquery)
+        )
+
+        ordering = self.request.query_params.get('ordering')
+        if ordering in ['price', '-price']:
+            queryset = queryset.order_by(ordering)
+
+        return queryset
 
     @action(detail=False, methods=['post'])
     def disable_enabled_product(self, request):
@@ -1000,4 +1040,9 @@ def edit_profile(request):
     templates = 'backend/edit_profile.html'
     context = {'form': form}
     return render(request, templates, context)
+
+
+class CustomLogoutView(LogoutView):
+    next_page = reverse_lazy('index')
+    http_method_names = ['get', 'post']
 

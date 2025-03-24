@@ -13,7 +13,10 @@
         <nav>
             <a href="{% url 'index' %}">Главная</a>
             <a href="{% url 'profile' %}">Личный кабинет</a>
-            <a href="{% url 'logout' %}">Выйти</a>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button class="logout-button" type="submit">Выйти</button>
+            </form>
         </nav>
     </header>
     <main>

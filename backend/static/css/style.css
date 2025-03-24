@@ -17,6 +17,12 @@ nav a {
     text-decoration: none;
 }
 
+nav form button.logout-button {
+    color: white;
+    margin: 0 10px;
+    text-decoration: none;
+}
+
 main {
     padding: 20px;
 }

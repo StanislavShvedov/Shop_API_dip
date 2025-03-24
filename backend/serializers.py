@@ -175,16 +175,31 @@ class ProductListSerializer(serializers.ModelSerializer):
         Сериализатор для модели Product (списочное представление).
 
         Преобразует данные модели Product в формат JSON и обратно.
-        Включает поля 'id', 'name', 'category' и 'user'.
+        Включает поля 'id', 'name', 'category', 'user' и 'price'.
 
         Атрибуты:
             - Meta: Внутренний класс для настройки сериализатора.
                 - model (Product): Модель, с которой работает сериализатор.
                 - fields (list[str]): Список полей модели, которые будут сериализованы.
     """
+    price = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category', 'user']
+        fields = ['id', 'name', 'category', 'user', 'price']
+
+    def get_price(self, obj):
+        """
+        Получает значение поля 'price' из первого связанного объекта product_info.
+
+        Args:
+            obj (Product): Экземпляр модели Product.
+
+        Returns:
+            float or None: Значение поля 'price' или None, если product_info пуст.
+        """
+        product_info = obj.product_info.first()
+        return product_info.price if product_info else None
 
 
 class ProductSerializer(serializers.ModelSerializer):
