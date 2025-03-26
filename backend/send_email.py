@@ -1,9 +1,12 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
-smtp_user = "Ваша почта@yandex.ru"
-smtp_password = "пароль"
+smtp_user = os.getenv('SMTP_USER')
+smtp_password = os.getenv('SMTP_PASSWORD')
 
 def send_varif_mail(host_email: str, password: str, user_email: str, subj_tex: str, mail_text: str) -> None:
     """

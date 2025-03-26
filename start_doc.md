@@ -10,8 +10,12 @@
 3. Запуск сервера
  - python manage.py runserver # запускаем сервер
 
-4. Настройка SMTP для отправки email
- в файле send_email.py
+4. Создайте файл .env, внесите в него следующие данные:
+ - POSTGRES_USER = "Имя Вашего пользователя базы данных"
+ - POSTGRES_PASSWORD = "Ваш пароль пользователя базы данных"
+ - POSTGRES_DB = "Название Вашей базы данных"
+ - POSTGRES_HOST = "127.0.0.1"
+ - POSTGRES_PORT = "5432"
  - smtp_user = "Ваша почта@yandex.ru"
  - smtp_password = "Пароль приложения"
 
