@@ -19,6 +19,9 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+# def trigger_error(request):
+#     division_by_zero = 1 / 0
+
 from backend.views import (ShopViewSet, ShopProductViewSet,
                            ProductCategoryViewSet, ProductsViewSet,
                            CreateProductCardViewSet, ImportProductsView,
@@ -56,4 +59,5 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    path('sentry-debug/', trigger_error),
 ] + router.urls

@@ -20,6 +20,7 @@
  - smtp_password = "Пароль приложения"
  - GOOGLE_CLIENT_ID="Ваш id приложения"
  - GOOGLE_CLIENT_SECRET="Ваш ключ приложения"
+ - DSN_SENTRY="Ваш ключ приложения"
 
 7. Доступные endpoints API
 
