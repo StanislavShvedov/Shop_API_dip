@@ -166,3 +166,12 @@ Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508 ### заменит
     "product_id": "4216226"
 }
 
+12. Тестирование
+
+    ### Запуск тестов
+    - coverage run -m pytest
+    
+    ### Отчет о тестах
+    - coverage report
+    - coverage html
+    - open htmlcov/index.htm # открываем в браузере

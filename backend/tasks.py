@@ -153,21 +153,8 @@ def import_products_task(data, user):
                                     "status": f"Произошла ошибка при импорте продуктов из каталога {yaml_url}: {e}"
                                 }
                             )
-        if yaml_file:
-            return Response(
-                {"status": f"Продукты из каталога {yaml_file} успешно импортированы"}
-            )
-        elif yaml_url:
-            return Response(
-                {"status": f"Продукты из каталога {yaml_url} успешно импортированы"}
-            )
 
     except Exception as e:
-        if yaml_file:
-            return Response(
-                {"status": f"Произошла ошибка при импорте продуктов из каталога {yaml_file}: {e}"}
-            )
-        elif yaml_url:
-            return Response(
-                {"status": f"Произошла ошибка при импорте продуктов из каталога {yaml_url}: {e}"}
-            )
+        return e
+
+

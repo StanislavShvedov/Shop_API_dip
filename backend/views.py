@@ -333,6 +333,7 @@ class ImportProductsView(APIView):
         - post(request: Request) -> Response:
             Обрабатывает POST-запрос для импорта товаров из YAML-файла или URL.
             Производит проверку прав доступа, загрузку данных, их обработку и сохранение в базу данных.
+            import_products_task(data, user) вызывает задачу Celery для асинхронного импорта товаров.
     """
 
     permission_classes = [IsAuthenticated, IsOwner]
@@ -364,14 +365,14 @@ class ImportProductsView(APIView):
         except Exception as e:
             return Response({"status": f"Ошибка при обработке запроса: {e}"})
 
-        if yaml_file:
-            return Response(
-                {"status": f"Продукты из каталога {yaml_file} успешно импортированы"}
-            )
-        elif yaml_url:
-            return Response(
-                {"status": f"Продукты из каталога {yaml_url} успешно импортированы"}
-            )
+        # if yaml_file:
+        #     return Response(
+        #         {"status": f"Продукты из каталога {yaml_file} успешно импортированы"}
+        #     )
+        # elif yaml_url:
+        #     return Response(
+        #         {"status": f"Продукты из каталога {yaml_url} успешно импортированы"}
+        #     )
 
 
 class UserViewSet(ModelViewSet):
