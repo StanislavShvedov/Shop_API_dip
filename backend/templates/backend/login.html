@@ -27,6 +27,7 @@
             </p>
             <button type="submit">Войти</button>
         </form>
+        <a href="{% url 'social:begin' 'google-oauth2' %}">Войти через Google</a>
         <p>Нет аккаунта? <a href="{% url 'register' %}">Зарегистрируйтесь</a></p>
     </main>
 </body>

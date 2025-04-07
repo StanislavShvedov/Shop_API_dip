@@ -15,8 +15,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from backend.views import (ShopViewSet, ShopProductViewSet,
                            ProductCategoryViewSet, ProductsViewSet,
@@ -44,6 +45,7 @@ urlpatterns = [
     path('index/', index, name='index'),
     path('register/', register, name='register'),
     path('login/', user_login, name='login'),
+    path('oauth/', include('social_django.urls', namespace='social')),
     path('logout/', CustomLogoutView.as_view(), name='logout'),
     path('profile/edit/', edit_profile, name='edit_profile'),
     path('shop_categories/<int:shop_id>', shop_categories, name='shop_categories'),
@@ -51,4 +53,7 @@ urlpatterns = [
     path('product_detail/<int:product_id>/', product_detail, name='product_detail'),
     path('verify/<str:token>/', verify_email, name='verify_email'),
     path('profile/', profile, name='profile'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ] + router.urls

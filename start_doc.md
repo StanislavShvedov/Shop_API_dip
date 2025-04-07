@@ -18,6 +18,8 @@
  - POSTGRES_PORT = "5432"
  - smtp_user = "Ваша почта@yandex.ru"
  - smtp_password = "Пароль приложения"
+ - GOOGLE_CLIENT_ID="Ваш id приложения"
+ - GOOGLE_CLIENT_SECRET="Ваш ключ приложения"
 
 7. Доступные endpoints API
 
@@ -175,3 +177,10 @@ Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508 ### заменит
     - coverage report
     - coverage html
     - open htmlcov/index.htm # открываем в браузере
+
+13. Документация
+
+    - http://127.0.0.1:8000/
+    - http://127.0.0.1:8000/api/docs/swagger/
+    - http://127.0.0.1:8000/api/docs/redoc/
+    - http://127.0.0.1:8000/api/schema/
