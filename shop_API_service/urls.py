@@ -15,12 +15,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from baton.autodiscover import admin
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-# def trigger_error(request):
-#     division_by_zero = 1 / 0
+def trigger_error(request):
+    division_by_zero = 1 / 0
 
 from backend.views import (ShopViewSet, ShopProductViewSet,
                            ProductCategoryViewSet, ProductsViewSet,
@@ -44,6 +45,7 @@ router.register('order', OrderViewSet, basename='order')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('baton/', include('baton.urls')),
     path('import/', ImportProductsView.as_view(), name='import'),
     path('index/', index, name='index'),
     path('register/', register, name='register'),

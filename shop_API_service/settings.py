@@ -14,6 +14,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+from baton.ai import AIModels
 
 load_dotenv()
 
@@ -34,6 +35,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'baton',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,7 +51,7 @@ INSTALLED_APPS = [
     'social_django',
 
     'backend',
-
+    'baton.autodiscover',
 ]
 
 MIDDLEWARE = [
@@ -200,3 +202,71 @@ sentry_sdk.init(
    # something more human-readable.
    # release="myapp@1.0.0",
 )
+
+# Baton settings
+BATON = {
+    'SITE_HEADER': 'Baton',
+    'SITE_TITLE': 'Baton',
+    'INDEX_TITLE': 'Site administration',
+    'SUPPORT_HREF': 'https://github.com/otto-torino/django-baton/issues',
+    'COPYRIGHT': 'copyright © 2020 <a href="https://www.otto.to.it">Otto srl</a>', # noqa
+    'POWERED_BY': '<a href="https://www.otto.to.it">Otto srl</a>',
+    'CONFIRM_UNSAVED_CHANGES': True,
+    'SHOW_MULTIPART_UPLOADING': True,
+    'ENABLE_IMAGES_PREVIEW': True,
+    'CHANGELIST_FILTERS_IN_MODAL': True,
+    'CHANGELIST_FILTERS_ALWAYS_OPEN': False,
+    'CHANGELIST_FILTERS_FORM': True,
+    'CHANGEFORM_FIXED_SUBMIT_ROW': True,
+    'MENU_ALWAYS_COLLAPSED': False,
+    'MENU_TITLE': 'Menu',
+    'MESSAGES_TOASTS': False,
+    'GRAVATAR_DEFAULT_IMG': 'retro',
+    'GRAVATAR_ENABLED': True,
+    'LOGIN_SPLASH': '/static/core/img/login-splash.png',
+    'FORCE_THEME': None,
+    'SEARCH_FIELD': {
+        'label': 'Search contents...',
+        'url': '/search/',
+    },
+    'BATON_CLIENT_ID': None,
+    'BATON_CLIENT_SECRET': None,
+    'IMAGE_PREVIEW_WIDTH': 200,
+    # 'AI': {
+    #     "MODELS": "myapp.foo.bar", # alternative to the below for lines, a function which returns the models dictionary
+    #     "IMAGES_MODEL": AIModels.BATON_DALL_E_3,
+    #     "VISION_MODEL": AIModels.BATON_GPT_4O_MINI,
+    #     "SUMMARIZATIONS_MODEL": AIModels.BATON_GPT_4O_MINI,
+    #     "TRANSLATIONS_MODEL": AIModels.BATON_GPT_4O,
+    #     'ENABLE_TRANSLATIONS': True,
+    #     'ENABLE_CORRECTIONS': True,
+    #     'CORRECTION_SELECTORS': ["textarea", "input[type=text]:not(.vDateField):not([name=username]):not([name*=subject_location])"],
+    #     "CORRECTIONS_MODEL": AIModels.BATON_GPT_3_5_TURBO,
+    # },
+    'MENU': (
+        { 'type': 'title', 'label': 'main', 'apps': ('auth', ) },
+        {
+            'type': 'app',
+            'name': 'auth',
+            'label': 'Authentication',
+            'icon': 'fa fa-lock',
+            'models': (
+                {
+                    'name': 'user',
+                    'label': 'Users'
+                },
+                {
+                    'name': 'group',
+                    'label': 'Groups'
+                },
+            )
+        },
+        { 'type': 'title', 'label': 'Contents', 'apps': ('flatpages', ) },
+        { 'type': 'model', 'label': 'Pages', 'name': 'flatpage', 'app': 'flatpages' },
+        { 'type': 'free', 'label': 'Custom Link', 'url': 'http://www.google.it', 'perms': ('flatpages.add_flatpage', 'auth.change_user') },
+        { 'type': 'free', 'label': 'My parent voice', 'default_open': True, 'children': [
+            { 'type': 'model', 'label': 'A Model', 'name': 'mymodelname', 'app': 'myapp' },
+            { 'type': 'free', 'label': 'Another custom link', 'url': 'http://www.google.it' },
+        ] },
+    )
+}
