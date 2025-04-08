@@ -169,7 +169,18 @@ Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508 ### заменит
     "product_id": "4216226"
 }
 
-12. Тестирование
+12. Управление кэшем с помощью cachalot
+
+    ### Очистка всего кэша
+    - python manage.py invalidate_cachalot
+    
+    ### Отчистить кэш конкретного ghbkj;tybz
+    - python manage.py invalidate_cachalot <имя_приложения>
+    
+    ### Очистить кэш только для определенной базы данных
+    - python manage.py invalidate_cachalot -p <имя_базы_данных>
+
+13. Тестирование
 
     ### Запуск тестов
     - coverage run -m pytest
@@ -179,7 +190,7 @@ Authorization: Token e7ba18daeb804f9e16e122bc0b748ca18ca50508 ### заменит
     - coverage html
     - open htmlcov/index.htm # открываем в браузере
 
-13. Документация
+14. Документация
 
     - http://127.0.0.1:8000/
     - http://127.0.0.1:8000/api/docs/swagger/
