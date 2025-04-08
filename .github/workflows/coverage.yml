@@ -12,6 +12,13 @@ jobs:
   coverage:
     runs-on: ubuntu-latest  # или другой доступный образ, например, windows-latest
 
+    env:
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+      POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+
     steps:
     # Шаг 1: Настройка Python
     - name: Checkout repository
