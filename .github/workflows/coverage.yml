@@ -20,6 +20,9 @@ jobs:
         python-version: '3.12'  # Укажите вашу версию Python
 
     # Шаг 2: Установка зависимостей
+    - name: Change working directory
+      run: cd $GITHUB_WORKSPACE
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip  # обновление pip
