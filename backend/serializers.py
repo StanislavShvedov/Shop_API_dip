@@ -10,6 +10,7 @@ from .models import (ProductCategory, Product,
                      Shop, ShopProduct, DynamicField,
                      OrderProduct, Order, DeliveryContacts, UserProfile)
 from .validators import validate_password
+from .tasks import generate_product_thumbnail
 
 
 class ShopSerializer(serializers.ModelSerializer):
@@ -167,7 +168,24 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category', 'user', 'product_info']
+        fields = ['id', 'name', 'category', 'user', 'product_info', 'image', 'thumbnail']
+
+    def to_representation(self, instance) -> dict:
+        """
+            Аргументы:
+                - instance: Экземпляр модели Parameters.
+
+            Возвращает:
+                - dict: Представление данных без полей, имеющих значение None.
+        """
+        representation = super().to_representation(instance)
+
+        for field in list(representation.keys()):
+            if representation[field] is None:
+                del representation[field]
+
+        return representation
+
 
 
 class ProductListSerializer(serializers.ModelSerializer):
@@ -186,7 +204,7 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category', 'user', 'price']
+        fields = ['id', 'name', 'category', 'user', 'price', 'image', 'thumbnail']
 
     def get_price(self, obj):
         """
@@ -201,13 +219,29 @@ class ProductListSerializer(serializers.ModelSerializer):
         product_info = obj.product_info.first()
         return product_info.price if product_info else None
 
+    def to_representation(self, instance) -> dict:
+        """
+            Аргументы:
+                - instance: Экземпляр модели Parameters.
+
+            Возвращает:
+                - dict: Представление данных без полей, имеющих значение None.
+        """
+        representation = super().to_representation(instance)
+
+        for field in list(representation.keys()):
+            if representation[field] is None:
+                del representation[field]
+
+        return representation
+
 
 class ProductSerializer(serializers.ModelSerializer):
     """
         Сериализатор для модели Product.
 
         Преобразует данные модели Product в формат JSON и обратно.
-        Включает поля 'id', 'name', 'category' и 'user'.
+        Включает поля 'id', 'name', 'category', 'user', 'image', 'thumbnail'.
 
         Атрибуты:
             - Meta: Внутренний класс для настройки сериализатора.
@@ -216,7 +250,7 @@ class ProductSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category', 'user']
+        fields = ['id', 'name', 'category', 'user', 'image', 'thumbnail']
 
 
 class CreateProductCardSerializer(serializers.Serializer):
@@ -254,6 +288,7 @@ class CreateProductCardSerializer(serializers.Serializer):
     model = serializers.CharField(max_length=100)
     price = serializers.IntegerField()
     price_rrc = serializers.IntegerField()
+    image = serializers.ImageField(required=False)
     screen_size = serializers.FloatField(required=False)
     resolution = serializers.CharField(required=False)
     internal_memory = serializers.IntegerField(required=False)
@@ -271,9 +306,13 @@ class CreateProductCardSerializer(serializers.Serializer):
         category_name = validated_data['category_name']
         category, _ = ProductCategory.objects.get_or_create(user=user, name=category_name, shop=shop)
 
+
         # Создание продукта
         product_name = validated_data['product_name']
-        product, _ = Product.objects.get_or_create(user=user, name=product_name, category=category)
+        image = validated_data.pop('image', None)
+        product, _ = Product.objects.get_or_create(user=user, name=product_name, category=category, image=image)
+        if image:
+            generate_product_thumbnail.delay(product.id)
 
         # Создание продукта в магазине
         quantity = validated_data['quantity']

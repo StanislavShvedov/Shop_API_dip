@@ -1065,7 +1065,6 @@ class UserProfileViewSet(ModelViewSet):
             для генерации миниатюры аватара, если аватар был загружен или изменён.
     """
     permission_classes = [IsAuthenticated]
-    authentication_classes = [TokenAuthentication]
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
 
