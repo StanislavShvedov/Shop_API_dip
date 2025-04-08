@@ -62,4 +62,5 @@ urlpatterns = [
     path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     path('sentry-debug/', trigger_error),
+    path('silk/', include('silk.urls', namespace='silk')),
 ] + router.urls

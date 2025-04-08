@@ -68,6 +68,8 @@ class Product(models.Model):
     category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE, related_name='category')
     is_available = models.BooleanField(default=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='products/', null=True, blank=True)
+    thumbnail = models.ImageField(upload_to='products/thumbnails/', null=True, blank=True)
 
     def __str__(self) -> str:
         return self.name
@@ -349,3 +351,24 @@ class VerificationToken(models.Model):
                 - str: Строка в формате "Token for <username>".
         """
         return f"Token for {self.user.username}"
+
+class UserProfile(models.Model):
+    """
+        Модель для представления профиля пользователя.
+
+        Атрибуты:
+            - user (OneToOneField): Связь с пользователем, которому принадлежит профиль.
+                                    При удалении пользователя профиль также удаляется.
+            - avatar (ImageField): Изображение пользователя (опционально).
+            - avatar_thumbnail (ImageField): Миниатюра изображения пользователя (опционально).
+
+        Методы:
+            - __str__() -> str:
+                Возвращает строковое представление объекта профиля.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    avatar_thumbnail = models.ImageField(upload_to='avatars/thumbnails/', null=True, blank=True)
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"

@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'social_django',
     'cachalot',
+    'silk',
 
     'backend',
     'baton.autodiscover',
@@ -59,6 +60,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'silk.middleware.SilkyMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'social_django.middleware.SocialAuthExceptionMiddleware',
@@ -140,6 +142,10 @@ STATIC_FILES_DIRS = [
     os.path.join(BASE_DIR, 'backend/static'),
 ]
 
+# Media settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -170,6 +176,8 @@ SITE_ID = 1
 # Celery settings
 CELERY_BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
 
 # Goole auth settings
 AUTHENTICATION_BACKENDS = (

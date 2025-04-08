@@ -1,6 +1,8 @@
 import uuid
-from typing import Any, Type
 import requests
+import yaml
+
+from typing import Any, Type
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -25,9 +27,6 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-
-import yaml
-
 from .models import (
     Product,
     ProductCategory,
@@ -38,6 +37,7 @@ from .models import (
     Order,
     OrderProduct,
     VerificationToken,
+    UserProfile,
 )
 from .permissions import IsOwnerOrReadOnly, IsOwner
 from .serializers import (
@@ -51,10 +51,11 @@ from .serializers import (
     ParametersSerializer,
     OrderSerializer,
     DeliveryContacts,
+    UserProfileSerializer,
 )
 from .translator import translat_text_en_ru, translat_text_ru_en, translator_key
 from .send_email import smtp_user, smtp_password, send_varif_mail
-from .tasks import import_products_task
+from .tasks import import_products_task, generate_product_thumbnail, generate_avatar_thumbnail
 
 
 # Create your views here.
@@ -206,11 +207,27 @@ class ProductsViewSet(ModelViewSet):
         """
         Аргументы:
             - serializer (Serializer): Экземпляр сериализатора для валидации и сохранения данных.
-
+        Выполняет:
+            - generate_product_thumbnail.delay(product.id): Задача Celery для генерации миниатюры товара.
         Возвращает:
             - None
         """
         serializer.save(user=self.request.user)
+        if product.image:
+            generate_product_thumbnail.delay(product.id)
+
+    def perform_update(self, serializer):
+        """
+        Аргументы:
+            - serializer (Serializer): Экземпляр сериализатора для валидации и сохранения данных.
+        Выполняет:
+            - generate_product_thumbnail.delay(product.id): Задача Celery для генерации миниатюры товара.
+        Возвращает:
+            - None
+        """
+        product = serializer.save()
+        if product.image:
+            generate_product_thumbnail.delay(product.id)
 
     def get_queryset(self) -> queryset:
         """
@@ -1017,6 +1034,66 @@ def user_login(request):
             )
     else:
         return render(request, "backend/login.html")
+
+
+class UserProfileViewSet(ModelViewSet):
+    """
+    ViewSet для управления объектами модели UserProfile.
+    Позволяет выполнять CRUD-операции (создание, чтение, обновление, удаление)
+    для профилей пользователей (UserProfile). Доступ к операциям предоставляется
+    только аутентифицированным пользователям (IsAuthenticated), а также
+    используется аутентификация по токену (TokenAuthentication).
+
+    Атрибуты:
+        - permission_classes (list[type[BasePermission]]): Список классов разрешений.
+          В данном случае используется IsAuthenticated для ограничения доступа
+          только аутентифицированным пользователям.
+        - authentication_classes (list[type[BaseAuthentication]]): Список классов
+          аутентификации. В данном случае используется TokenAuthentication для
+          аутентификации пользователей по токену.
+        - queryset (QuerySet[UserProfile]): Набор всех объектов модели UserProfile.
+        - serializer_class (type[UserProfileSerializer]): Сериализатор для
+          преобразования данных модели UserProfile.
+
+    Методы:
+        - perform_create(serializer: UserProfileSerializer) -> None:
+            Сохраняет новый объект UserProfile и запускает задачу Celery
+            для генерации миниатюры аватара, если аватар был загружен.
+
+        - perform_update(serializer: UserProfileSerializer) -> None:
+            Обновляет существующий объект UserProfile и запускает задачу Celery
+            для генерации миниатюры аватара, если аватар был загружен или изменён.
+    """
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+
+    def perform_create(self, serializer) -> None:
+        """
+       Аргументы:
+            - serializer (UserProfileSerializer): Экземпляр сериализатора для
+              валидации и сохранения данных.
+
+        Возвращает:
+            - None
+        """
+        profile = serializer.save()
+        if profile.avatar:
+            generate_avatar_thumbnail.delay(profile.id)
+
+    def perform_update(self, serializer) -> None:
+        """
+        Аргументы:
+            - serializer (UserProfileSerializer): Экземпляр сериализатора для
+              валидации и сохранения данных.
+
+        Возвращает:
+            - None
+        """
+        profile = serializer.save()
+        if profile.avatar:
+            generate_avatar_thumbnail.delay(profile.id)
 
 
 def shop_categories(request, shop_id):

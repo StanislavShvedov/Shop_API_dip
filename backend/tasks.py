@@ -1,9 +1,16 @@
-# backend/tasks.py
+import os
 from celery import shared_task
 import yaml
 import requests
+from django.core.files import File
+from django.conf import settings
+
 from django.contrib.auth.models import User
-from .models import Shop, ProductCategory, Product, ShopProduct, ProductInfo, Parameters
+from PIL import Image
+from io import BytesIO
+
+
+from .models import Shop, ProductCategory, Product, ShopProduct, ProductInfo, Parameters, UserProfile
 from .translator import translat_text_en_ru, translat_text_ru_en, translator_key
 
 
@@ -156,5 +163,35 @@ def import_products_task(data, user):
 
     except Exception as e:
         return e
+
+def generate_thumbnail(image_path, size=(300, 300)):
+    img = Image.open(image_path)
+    img.convert('RGB')  # Ensure compatibility
+    img.thumbnail(size)
+    thumb_io = BytesIO()
+    img.save(thumb_io, format='JPEG')
+    return thumb_io
+
+
+@shared_task
+def generate_product_thumbnail(product_id):
+    product = Product.objects.get(id=product_id)
+    if not product.image:
+        return
+
+    thumb_io = generate_thumbnail(product.image.path)
+    thumb_name = os.path.basename(product.image.name)
+    product.thumbnail.save(f"thumb_{thumb_name}", File(thumb_io), save=True)
+
+
+@shared_task
+def generate_avatar_thumbnail(profile_id):
+    profile = UserProfile.objects.get(id=profile_id)
+    if not profile.avatar:
+        return
+
+    thumb_io = generate_thumbnail(profile.avatar.path, size=(150, 150))
+    thumb_name = os.path.basename(profile.avatar.name)
+    profile.avatar_thumbnail.save(f"thumb_{thumb_name}", File(thumb_io), save=True)
 
 

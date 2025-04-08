@@ -8,7 +8,7 @@ from rest_framework.authtoken.models import Token
 from .models import (ProductCategory, Product,
                      ProductInfo, Parameters,
                      Shop, ShopProduct, DynamicField,
-                     OrderProduct, Order, DeliveryContacts)
+                     OrderProduct, Order, DeliveryContacts, UserProfile)
 from .validators import validate_password
 
 
@@ -468,3 +468,22 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'status_choice', 'created_at', 'updated_at',
                   'total_price', 'order_products', 'delivery_choice', 'delivery_contacts']
         read_only_fields = ['user', 'status_choice', 'total_price']
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+        Сериализатор для модели UserProfile.
+
+        Преобразует данные модели UserProfile в формат JSON и обратно.
+        Включает поля 'user' и 'phone_number'.
+
+        Атрибуты:
+            - Meta: Внутренний класс для настройки сериализатора.
+                - model (UserProfile): Модель, с которой работает сериализатор.
+                - fields (list[str]): Список полей модели, которые будут сериализованы.
+                - read_only_fields (list[str]): Список полей, доступных только для чтения.
+    """
+    class Meta:
+        model = UserProfile
+        fields = ['user', 'avatar', 'avatar_thumbnail',]
+        read_only_fields = ['user']

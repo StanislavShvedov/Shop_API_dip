@@ -6,6 +6,12 @@
  - python manage.py makemigrations # создаем миграцию
  - python manage.py migrate # применяем миграцию
  - python manage.py createsuperuser # создаем суперпользователя
+   
+    ### В терминале запускаем Redis
+ - redis-server
+ 
+    ### Запуск Celery
+ - celery -A shop_API_service worker
 
 3. Запуск сервера
  - python manage.py runserver # запускаем сервер
